@@ -1,0 +1,8 @@
+{
+  "name": "imy/core",
+  "version": "1.0.0",
+  "description": "Core library",
+  "require": {
+    "php": "^7.1"
+  }
+}
