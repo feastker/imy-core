@@ -60,3 +60,7 @@ function error($message = '', $data = [])
 
     die(json_encode($json, JSON_UNESCAPED_UNICODE));
 }
+
+function render($tpl) {
+    include VIEW . str_replace('.',DS,$tpl) . '.php';
+}

@@ -30,6 +30,7 @@ class Router
             $root_folder = ROOT . '../' . Config::get('system.app');
         }
 
+        define('APP', $root_folder);
         define('VIEW', $root_folder . 'view' . DS);
         define('PUB', ROOT . 'public' . DS);
         define('LIBS', ROOT . 'libs' . DS);
