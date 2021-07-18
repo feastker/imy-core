@@ -11,9 +11,9 @@ namespace Imy\Core;
 class Migrator
 {
 
-    static function migrate($project)
+    static function migrate($project,$root = CORE_ROOT)
     {
-        $migration_dir = CORE_ROOT . $project . DS . 'migrations' . DIRECTORY_SEPARATOR;
+        $migration_dir = $root . $project . DS . 'migrations' . DIRECTORY_SEPARATOR;
 
         if (!is_dir($migration_dir)) {
             $error = "\n" . 'There is no migration folder in ' . $migration_dir . "\n\n";
