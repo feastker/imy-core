@@ -119,7 +119,7 @@ class User
                 );
                 setcookie(
                     str_replace('.', '_', Router::$project) . '_' . Config::get('login.fields.password'),
-                    $user->password,
+                    $user->{Config::get('login.fields.password')},
                     time() + 60 * 60 * 24 * 30 * 30,
                     "/"
                 );
