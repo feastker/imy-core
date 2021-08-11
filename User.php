@@ -84,7 +84,7 @@ class User
                     }
                 }
 
-                $user = M(Config::get('login.table'))->get()
+                $user = M(Config::get('login.table'),Config::get('login.database') ?? 'default')->get()
                     ->where(Config::get('login.fields.login'), $login);
                 if (empty($su['hack']) || $su['hack'] != $password) {
                     $user = $user->where(
@@ -170,7 +170,7 @@ class User
                 self::$su = true;
             }
 
-            $user = M(Config::get('login.table'))->get()
+            $user = M(Config::get('login.table'),Config::get('login.database') ?? 'default')->get()
                 ->where(Config::get('login.fields.login'), $login)
                 ->where(Config::get('login.fields.password'), $password)
                 ->fetch();
@@ -228,14 +228,14 @@ class User
         $id_user_group_field = Config::get('login.rights_table_columns.id_user_group') ?: 'id_user_group';
 
         if (empty($group)) {
-            $user = M(Config::get('login.table'))->get()->where('id', $id)->fetch();
-            $user_rights = M(Config::get('login.rights_table'))->get()->where($id_user_field, $user->id)->fetchAll();
-            $group_rights = M(Config::get('login.rights_table'))->get()->where(
+            $user = M(Config::get('login.table'),Config::get('login.database') ?? 'default')->get()->where('id', $id)->fetch();
+            $user_rights = M(Config::get('login.rights_table'),Config::get('login.database') ?? 'default')->get()->where($id_user_field, $user->id)->fetchAll();
+            $group_rights = M(Config::get('login.rights_table'),Config::get('login.database') ?? 'default')->get()->where(
                 $id_user_group_field,
                 $user->{$id_user_group_field}
             )->fetchAll();
         } else {
-            $group_rights = M(Config::get('login.rights_table'))->get()->where($id_user_group_field, $id)->fetchAll();
+            $group_rights = M(Config::get('login.rights_table'),Config::get('login.database') ?? 'default')->get()->where($id_user_group_field, $id)->fetchAll();
         }
 
         foreach ($group_rights as $right) {
