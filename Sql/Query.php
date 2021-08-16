@@ -36,7 +36,7 @@ abstract class Query
      */
     public function setDatabase($database)
     {
-        if ($database === null) {
+        if ($database == null) {
             $this->setConnection(DB::getInstance());
         } else {
             if (is_string($database)) {
