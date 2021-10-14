@@ -9,6 +9,7 @@ class Model
     protected $changed_fields;
     protected $table;
     protected $database;
+    protected $primary = 'id';
 
     public function __construct($table = false, $database = null)
     {
@@ -191,11 +192,13 @@ class Model
         return empty($this->$id);
     }
 
+    public function setPrimary($primary) {
+        $this->primary = $primary;
+    }
+
     protected function getPrimary()
     {
-        $id = 'id';
-
-        return $id;
+        return $this->primary;
     }
 
     protected function saveSuccess()
