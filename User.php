@@ -186,8 +186,8 @@ class User
     static function logout($strong = false)
     {
         if ((isset($_GET['action']) && $_GET['action'] == 'core_sign_out') || $strong) {
-            setcookie(Router::$project . '_' . Config::get('login.fields.login'), '', time() + 60 * 60 * 24 * 30 * 30, "/");
-            setcookie(Router::$project . '_' . Config::get('login.fields.password'), '', time() + 60 * 60 * 24 * 30 * 30, "/");
+            setcookie(str_replace('.', '_',Router::$project) . '_' . Config::get('login.fields.login'), '', time() + 60 * 60 * 24 * 30 * 30, "/");
+            setcookie(str_replace('.', '_',Router::$project) . '_' . Config::get('login.fields.password'), '', time() + 60 * 60 * 24 * 30 * 30, "/");
             return true;
         }
         return false;
