@@ -32,7 +32,7 @@ class UI
             throw new \Exception('Нет файла шаблона ' . $filename);
         }
 
-        $ui_hash = md5(uniqid());
+        $ui_hash = 'ui' . md5(uniqid());
 
         $content = Tools::get_include_contents(
             $filename,

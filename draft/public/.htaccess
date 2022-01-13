@@ -1,0 +1,14 @@
+php_flag display_startup_errors on
+php_flag display_errors on
+php_flag html_errors on
+
+
+# Various rewrite rules.
+<IfModule mod_rewrite.c>
+	RewriteEngine On
+	RewriteBase /
+
+	RewriteCond %{REQUEST_FILENAME} !-f
+	RewriteCond %{REQUEST_FILENAME} !-d
+	RewriteRule ^(.*)$ index.php [QSA]
+</IfModule>
