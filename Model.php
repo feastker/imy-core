@@ -196,8 +196,16 @@ class Model
     protected function isNew()
     {
         $id = $this->getPrimary();
+        if(is_array($id)) {
+            $result = true;
+            foreach($id as $test)
+                if(!empty($this->{$test}))
+                    $result = false;
+        }
+        else
+            $result = empty($this->$id);
 
-        return empty($this->$id);
+        return $result;
     }
 
     public function setPrimary($primary) {
