@@ -156,8 +156,8 @@ class Model
 //                $query->set('mdate', date('Y-m-d H:i:s'));
             }
 
-            if(is_array($pk)) {
-                foreach($pk as $key)
+            if(is_array($this->primary)) {
+                foreach($this->primary as $key)
                     $query = $query->where($key, $this->{$key});
             }
             else
