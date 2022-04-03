@@ -83,6 +83,12 @@ class Core
 
             $controller_name = ucfirst(Router::$route) . 'Controller';
 
+            if(!empty(Router::$folder) && !class_exists($controller_name)) {
+                $controller_file = APP . 'controller' . DS . Router::$folder . DS . $controller_name . '.php';
+                if(file_exists($controller_file))
+                    include $controller_file;
+            }
+
             if (class_exists($controller_name)) {
                 $controller = new $controller_name();
             } elseif (class_exists('Page404Controller')) {

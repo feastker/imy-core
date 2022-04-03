@@ -12,6 +12,7 @@ class Router
     static $uparts;
     static $route;
     static $alias;
+    static $folder;
     static $params;
     static $routing;
     static $sub;
@@ -61,6 +62,14 @@ class Router
             self::$rules = include $router_path;
         }
 
+        $router_folder = $root_folder . 'router' . DS;
+        if(file_exists($router_folder)) {
+            $router_files = array_diff(scandir($router_folder), array('.', '..'));
+            foreach($router_files as $file) {
+                self::$rules[str_replace('.php','',$file)] = include $router_folder . $file;
+            }
+        }
+
         self::$routing = Config::get('system.routing');
 
         @self::$uri = $_SERVER['REQUEST_URI'];
@@ -107,6 +116,20 @@ class Router
                 if (preg_match('/^\/' . $k . '/ui', self::$uri)) {
                     self::$route = $v;
                     break;
+                }
+            }
+        }
+
+        if(self::$route == 'Page404') {
+            $uri = explode('/',self::$uri);
+            array_pop($uri);
+            array_shift($uri);
+            if(count($uri) == 2) {
+                if(!empty(self::$rules[$uri[0]])) {
+                    self::$folder = $uri[0];
+                    if(!empty(self::$rules[$uri[0]][$uri[1]])) {
+                        self::$route = self::$rules[$uri[0]][$uri[1]];
+                    }
                 }
             }
         }
