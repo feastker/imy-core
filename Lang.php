@@ -6,6 +6,7 @@ class Lang {
     static $localization;
     static $guide;
     static $default_lang = 'ru';
+    static $folder = ROOT;
 
     static function init() {
 
@@ -23,7 +24,7 @@ class Lang {
         }
         else {
             $file = self::check_language(self::$default_lang);
-            if(!empty($file)) {
+            if(!empty($file) && self::$default_lang != $lang) {
                 throw new Exception\Redirect('/' . self::$default_lang . '/' . substr(Router::$uri,1));
             }
         }
@@ -31,7 +32,7 @@ class Lang {
 
     static function check_language($lang) {
 
-        $file = ROOT . 'lang' . DS . $lang . '.php';
+        $file = self::$folder . 'lang' . DS . $lang . '.php';
 
         if(file_exists($file)) {
             return $file;
