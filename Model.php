@@ -155,7 +155,15 @@ class Model
 //                $query->set('modifier', User::$info->id_user);
 //                $query->set('mdate', date('Y-m-d H:i:s'));
             }
-            $result = $query->where($pk, $this->$pk)->update($die);
+
+            if(is_array($pk)) {
+                foreach($pk as $key)
+                    $query = $query->where($key, $this->{$key});
+            }
+            else
+                $query = $query->where($pk, $this->$pk);
+
+            $result = $query->update($die);
 
             $this->saveSuccess();
 
