@@ -19,7 +19,8 @@ class Lang {
 
             unset($tmp[1]);
 
-            Router::$uri = implode('/', $tmp);
+            if($lang != self::$default_lang)
+                Router::$uri = implode('/', $tmp);
         }
         else {
             $file = self::check_language(self::$default_lang);
