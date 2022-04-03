@@ -12,6 +12,9 @@ class Lang {
         $tmp = explode('/', Router::$uri);
         $lang = @$tmp[1];
 
+        if(empty($lang))
+            $lang = self::$default_lang;
+
         $file = self::check_language($lang);
         if(!empty($file)) {
             self::$localization = $lang;
