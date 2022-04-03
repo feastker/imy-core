@@ -6,7 +6,6 @@ class Lang {
     static $localization;
     static $guide;
     static $default_lang = 'ru';
-    static $folder = ROOT;
 
     static function init() {
 
@@ -32,7 +31,7 @@ class Lang {
 
     static function check_language($lang) {
 
-        $file = self::$folder . 'lang' . DS . $lang . '.php';
+        $file = APP . 'lang' . DS . $lang . '.php';
 
         if(file_exists($file)) {
             return $file;
