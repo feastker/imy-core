@@ -18,7 +18,7 @@ class Lang {
             $lang = self::$default_lang;
             $file = self::check_language($lang);
         }
-        
+
         if(!empty($file)) {
             self::$localization = $lang;
             self::$guide = include $file;
@@ -30,7 +30,7 @@ class Lang {
         }
         else {
             $file = self::check_language(self::$default_lang);
-            if(!empty($file) && self::$default_lang != $lang) {
+            if(!empty($file) && self::$default_lang != $lang && empty(Config::get('lang.noredirect'))) {
                 throw new Exception\Redirect('/' . self::$default_lang . '/' . substr(Router::$uri,1));
             }
         }
