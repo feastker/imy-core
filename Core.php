@@ -97,6 +97,9 @@ class Core
                 Tools::s(404);
             }
 
+            if (method_exists($controller, 'first')) {
+                $controller->first();
+            }
 
             if (!empty($_POST['handler']) && is_array($_POST['handler']) && !self::$ajax) {
                 $function = 'handler_' . array_keys($_POST['handler'])[0];
@@ -118,9 +121,7 @@ class Core
                 }
             }
 
-            if (method_exists($controller, 'first')) {
-                $controller->first();
-            }
+
 
             if (!self::$ajax) {
                 $controller->init();
