@@ -48,7 +48,7 @@ class DB
                 \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-                \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'utf8';",
+                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";',
             ]
             );
         } catch (\Exception $e) {
