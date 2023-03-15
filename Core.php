@@ -159,6 +159,7 @@ class Core
         } catch (Exception\Refresh $e) {
             header("Refresh:0");
         } catch (Exception\Redirect $e) {
+            header("HTTP/1.1 301 Moved Permanently");
             header('Location: ' . $e->getRedirectURL());
             exit;
         } catch (Exception\NotFound $e) {
