@@ -49,7 +49,7 @@ class Model
     public function copy($add)
     {
         $fields = get_object_vars($this);
-        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database'];
+        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database','primary'];
         foreach ($to_unset as $field) {
             unset($fields[$field]);
         }
