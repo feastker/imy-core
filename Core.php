@@ -159,7 +159,7 @@ class Core
         } catch (Exception\Refresh $e) {
             header("Refresh:0");
         } catch (Exception\Redirect $e) {
-            header("HTTP/1.1 " . $e->getHTTPStatusCode() . " Moved Permanently");
+            header("HTTP/1.1 " . $e->getHTTPStatusCode() . " " . $e->getHTTPStatusText());
             header('Location: ' . $e->getRedirectURL());
             exit;
         } catch (Exception\NotFound $e) {

@@ -17,6 +17,11 @@ class Redirect extends \Exception
 
     protected $http_status;
 
+    private $codes = [
+        301 => 'Moved Permanently',
+        302 => 'Found'
+    ];
+
     public function __construct($url, $query_params = [], $http_status = 302)
     {
         $this->url = $url;
@@ -27,6 +32,10 @@ class Redirect extends \Exception
     public function getHTTPStatusCode()
     {
         return $this->http_status;
+    }
+
+    public function getHTTPStatusText() {
+        return $this->codes[$this->http_status];
     }
 
     public function getRedirectURL()
