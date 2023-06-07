@@ -160,7 +160,7 @@ class Core
             header("Refresh:0");
         } catch (Exception\Redirect $e) {
             header("HTTP/1.1 " . $e->getHTTPStatusCode() . " Moved Permanently");
-            header("Location: ' . $e->getRedirectURL());
+            header('Location: ' . $e->getRedirectURL());
             exit;
         } catch (Exception\NotFound $e) {
             header("HTTP/1.0 404 Not Found");
