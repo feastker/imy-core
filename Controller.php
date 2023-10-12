@@ -15,6 +15,12 @@ abstract class Controller
     public $v = [];
     public $t = '';
 
+    private $isHelper = false;
+
+    function __construct($isHelper = false) {
+        $this->isHelper = $isHelper;
+    }
+
     abstract function init();
 
     /**
@@ -53,6 +59,10 @@ abstract class Controller
     function response($data)
     {
         header('Content-Type: application/json');
-        die(json_encode($data, JSON_UNESCAPED_UNICODE));
+        if($this->isHelper)
+            return $data;
+        else {
+            die(json_encode($data, JSON_UNESCAPED_UNICODE));
+        }
     }
 }
