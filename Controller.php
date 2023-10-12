@@ -29,7 +29,7 @@ abstract class Controller
      */
     function error($message, $data = [])
     {
-        $this->response(
+        return $this->response(
             [
                 'error'   => $message, //Для обратной совместимости
                 'status'  => 'error',
@@ -44,7 +44,7 @@ abstract class Controller
      */
     function success($message, $data = [])
     {
-        $this->response(
+        return $this->response(
             [
                 'success' => $message, //Для обратной совместимости
                 'status'  => 'success',
