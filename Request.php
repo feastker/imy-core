@@ -71,6 +71,14 @@ class Request
         return $headers;
     }
 
+    public function generateCsrfToken(): string
+    {
+        if (!isset($this->session['csrf_token'])) {
+            $this->session['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return $this->session['csrf_token'];
+    }
+
     private function validateCsrfToken()
     {
         // Если запрос не предполагает изменения данных, проверка CSRF-токена не требуется
