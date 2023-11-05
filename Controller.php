@@ -22,12 +22,12 @@ abstract class Controller
     private $isHelper = false;
 
     protected $request;
-    protected $response;
+    protected $responder;
 
     function __construct($isHelper = false) {
         $this->isHelper = $isHelper;
 
-        $this->response = new Response();
+        $this->responder = new Responder();
         $this->request = new Request();
     }
 
