@@ -91,39 +91,39 @@ class Request
         $this->session['csrf_token'] = bin2hex(random_bytes(32));
     }
 
-    public function get($key, $default = null)
+    public function get($key = '', $default = null)
     {
-        return $this->getArr[$key] ?? $default;
+        return $key ? ($this->getArr[$key] ?? $default) : $this->getArr;
     }
 
-    public function post($key, $default = null)
+    public function post($key = '', $default = null)
     {
-        return $this->postArr[$key] ?? $default;
+        return $key ? ($this->postArr[$key] ?? $default) : $this->postArr;
     }
 
-    public function server($key, $default = null)
+    public function server($key = '', $default = null)
     {
-        return $this->serverArr[$key] ?? $default;
+        return $key ? ($this->serverArr[$key] ?? $default) : $this->serverArr;
     }
 
-    public function cookie($key, $default = null)
+    public function cookie($key = '', $default = null)
     {
-        return $this->cookiesArr[$key] ?? $default;
+        return $key ? ($this->cookiesArr[$key] ?? $default) : $this->cookiesArr;
     }
 
-    public function file($key)
+    public function file($key = '')
     {
-        return $this->filesArr[$key] ?? null;
+        return $key ? ($this->filesArr[$key] ?? null) : $this->filesArr;
     }
 
-    public function header($key, $default = null)
+    public function header($key = '', $default = null)
     {
-        return $this->headersArr[$key] ?? $default;
+        return $key ? ($this->headersArr[$key] ?? $default) : $this->headersArr;
     }
 
-    public function session($key, $default = null)
+    public function session($key = '', $default = null)
     {
-        return $this->sessionArr[$key] ?? $default;
+        return $key ? ($this->sessionArr[$key] ?? $default) : $this->sessionArr;
     }
 
     public function method()
