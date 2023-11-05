@@ -12,7 +12,7 @@ class Request
     private $session;
     private $body;
 
-    public function __construct()
+    public function __construct($csrfCheck = false)
     {
         $this->get = $this->sanitizeInput($_GET);
         $this->post = $this->sanitizeInput($_POST);
@@ -23,7 +23,8 @@ class Request
         $this->headers = $this->extractHeaders($this->server);
         $this->body = $this->sanitizeInput(file_get_contents('php://input'));
 
-        $this->validateCsrfToken();
+        if($csrfCheck)
+            $this->validateCsrfToken();
     }
 
     private function sanitizeInput($input)
