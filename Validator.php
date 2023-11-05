@@ -31,47 +31,49 @@ abstract class Validator
             $value = $this->data[$field] ?? false;
             $fileValue = $this->files[$field] ?? [];
 
-            foreach ($rules as $rule => $error) {
-                $rule = explode(':', $rule);
-                $message = gettype($error) == 'boolean' ? $rules['message'] : $error;
+            if(!empty($rules)) {
+                foreach ($rules as $rule => $error) {
+                    $rule = explode(':', $rule);
+                    $message = gettype($error) == 'boolean' ? $rules['message'] : $error;
 
-                $error = false;
+                    $error = false;
 
-                switch ($rule[0]) {
-                    case 'required':
-                        if (empty($value))
-                            $error = true;
-                        break;
+                    switch ($rule[0]) {
+                        case 'required':
+                            if (empty($value))
+                                $error = true;
+                            break;
 
-                    case 'type':
-                        if (!Data::check($value, $rule[1]) && !empty($value))
-                            $error = true;
-                        break;
+                        case 'type':
+                            if (!Data::check($value, $rule[1]) && !empty($value))
+                                $error = true;
+                            break;
 
-                    case 'length':
-                        if (strlen($value) < $rule[1] && !empty($value))
-                            $error = true;
-                        break;
+                        case 'length':
+                            if (strlen($value) < $rule[1] && !empty($value))
+                                $error = true;
+                            break;
 
-                    case 'regexp':
-                        if (!preg_match($rule[1], $value) && !empty($value))
-                            $error = true;
-                        break;
+                        case 'regexp':
+                            if (!preg_match($rule[1], $value) && !empty($value))
+                                $error = true;
+                            break;
 
-                    case 'size':
-                        if ($fileValue['size'] > $rule[1])
-                            $error = true;
-                        break;
+                        case 'size':
+                            if ($fileValue['size'] > $rule[1])
+                                $error = true;
+                            break;
+                    }
+
+                    if ($error) {
+                        $this->errors[$field][] = $message;
+                        $isCritical = array_pop($rule) == 'critical';
+
+                        if ($isCritical)
+                            return false;
+                    }
+
                 }
-
-                if ($error) {
-                    $this->errors[$field][] = $message;
-                    $isCritical = array_pop($rule) == 'critical';
-
-                    if ($isCritical)
-                        return false;
-                }
-
             }
 
             if (method_exists($this, $field) && !empty($value)) {

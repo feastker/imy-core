@@ -42,12 +42,12 @@ spl_autoload_register(
 
         $part = str_replace('\\', DIRECTORY_SEPARATOR, $searchClass) . '.php';
 
-        foreach($dirs as $dir) {
+        foreach($dirs as $mainDir) {
             $replaceName = ucfirst(str_replace('_','',$dir)) . DIRECTORY_SEPARATOR;
 
             $levels = [3,4];
             foreach($levels as $level) {
-                $dir = dirname(__DIR__, $level) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dir);
+                $dir = dirname(__DIR__, $level) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $mainDir);
                 $file = $dir . DIRECTORY_SEPARATOR . str_replace($replaceName, '', $part);
 
                 if (is_readable($file)) {
