@@ -106,12 +106,12 @@ class Request
         return $key ? ($this->serverArr[$key] ?? $default) : $this->serverArr;
     }
 
-    public function cookie($key = '', $default = null)
+    public function cookies($key = '', $default = null)
     {
         return $key ? ($this->cookiesArr[$key] ?? $default) : $this->cookiesArr;
     }
 
-    public function file($key = '')
+    public function files($key = '')
     {
         return $key ? ($this->filesArr[$key] ?? null) : $this->filesArr;
     }
