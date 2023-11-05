@@ -3,25 +3,25 @@ namespace Imy\Core;
 
 class Request
 {
-    private $get;
-    private $post;
-    private $server;
-    private $cookies;
-    private $files;
-    private $headers;
-    private $session;
-    private $body;
+    private $getArr;
+    private $postArr;
+    private $serverArr;
+    private $cookiesArr;
+    private $filesArr;
+    private $headersArr;
+    private $sessionArr;
+    private $bodyArr;
 
     public function __construct($csrfCheck = false)
     {
-        $this->get = $this->sanitizeInput($_GET);
-        $this->post = $this->sanitizeInput($_POST);
-        $this->server = $_SERVER;
-        $this->cookies = $this->sanitizeInput($_COOKIE);
-        $this->files = $this->mapFiles($_FILES);
-        $this->session = $_SESSION;
-        $this->headers = $this->extractHeaders($this->server);
-        $this->body = $this->sanitizeInput(file_get_contents('php://input'));
+        $this->getArr = $this->sanitizeInput($_GET);
+        $this->postArr = $this->sanitizeInput($_POST);
+        $this->serverArr = $_SERVER;
+        $this->cookiesArr = $this->sanitizeInput($_COOKIE);
+        $this->filesArr = $this->mapFiles($_FILES);
+        $this->sessionArr = $_SESSION;
+        $this->headersArr = $this->extractHeaders($this->serverArr);
+        $this->bodyArr = $this->sanitizeInput(file_get_contents('php://input'));
 
         if($csrfCheck)
             $this->validateCsrfToken();
@@ -93,42 +93,47 @@ class Request
 
     public function get($key, $default = null)
     {
-        return $this->get[$key] ?? $default;
+        return $this->getArr[$key] ?? $default;
     }
 
     public function post($key, $default = null)
     {
-        return $this->post[$key] ?? $default;
+        return $this->postArr[$key] ?? $default;
     }
 
     public function server($key, $default = null)
     {
-        return $this->server[$key] ?? $default;
+        return $this->serverArr[$key] ?? $default;
     }
 
     public function cookie($key, $default = null)
     {
-        return $this->cookies[$key] ?? $default;
+        return $this->cookiesArr[$key] ?? $default;
     }
 
     public function file($key)
     {
-        return $this->files[$key] ?? null;
+        return $this->filesArr[$key] ?? null;
     }
 
     public function header($key, $default = null)
     {
-        return $this->headers[$key] ?? $default;
+        return $this->headersArr[$key] ?? $default;
+    }
+
+    public function session($key, $default = null)
+    {
+        return $this->sessionArr[$key] ?? $default;
     }
 
     public function method()
     {
-        return $this->server('REQUEST_METHOD');
+        return $this->serverArr('REQUEST_METHOD');
     }
 
     public function uri()
     {
-        return $this->server('REQUEST_URI');
+        return $this->serverArr('REQUEST_URI');
     }
 
     public function isPost()
@@ -143,12 +148,12 @@ class Request
 
     public function all()
     {
-        return array_merge($this->get, $this->post);
+        return array_merge($this->getArr, $this->postArr);
     }
 
     public function body()
     {
-        return $this->body;
+        return $this->bodyArr;
     }
 
 }
