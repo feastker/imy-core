@@ -34,7 +34,7 @@ class Request
                 $input[$key] = $this->sanitizeInput($value);
             }
         } else {
-            $input = htmlspecialchars(strip_tags($input), ENT_QUOTES, 'UTF-8');
+            $input = trim(htmlspecialchars(strip_tags($input), ENT_QUOTES, 'UTF-8'));
         }
         return $input;
     }
