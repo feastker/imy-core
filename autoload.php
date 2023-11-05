@@ -1,7 +1,11 @@
 <?php
 
 spl_autoload_register(
-    function ($class) {
+    function ($searchClass) {
+
+        $class = $searchClass;
+
+        // Imy\Core loader
         $ns = 'Imy\Core';
         $prefixes = array(
             "{$ns}\\" => array(
@@ -24,6 +28,30 @@ spl_autoload_register(
                     require $file;
                     return;
                 }
+            }
+        }
+
+        // Project loaders
+        $dirs = [
+            '_validator',
+            '_class',
+            '_repository',
+            '_model',
+            '_service'
+        ];
+
+        $part = str_replace('\\', DIRECTORY_SEPARATOR, $searchClass) . '.php';
+
+        foreach($dirs as $dir) {
+            $replaceName = ucfirst(str_replace('_','',$dir)) . DIRECTORY_SEPARATOR;
+
+            $dir = __DIR__ . str_replace('/', DIRECTORY_SEPARATOR, $dir);
+            $file = $dir . DIRECTORY_SEPARATOR . str_replace($replaceName,'',$part);
+            
+            if (is_readable($file)) {
+
+                require $file;
+                return;
             }
         }
     }
