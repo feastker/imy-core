@@ -43,7 +43,7 @@ spl_autoload_register(
         $part = str_replace('\\', DIRECTORY_SEPARATOR, $searchClass) . '.php';
 
         foreach($dirs as $mainDir) {
-            $replaceName = ucfirst(str_replace('_','',$dir)) . DIRECTORY_SEPARATOR;
+            $replaceName = ucfirst(str_replace('_','',$mainDir)) . DIRECTORY_SEPARATOR;
 
             $levels = [3,4];
             foreach($levels as $level) {
