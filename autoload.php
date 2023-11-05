@@ -45,9 +45,9 @@ spl_autoload_register(
         foreach($dirs as $dir) {
             $replaceName = ucfirst(str_replace('_','',$dir)) . DIRECTORY_SEPARATOR;
 
-            $dir = __DIR__ . str_replace('/', DIRECTORY_SEPARATOR, $dir);
+            $dir = dirname(__DIR__,4) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $dir);
             $file = $dir . DIRECTORY_SEPARATOR . str_replace($replaceName,'',$part);
-            
+
             if (is_readable($file)) {
 
                 require $file;
