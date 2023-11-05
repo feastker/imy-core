@@ -2,8 +2,6 @@
 
 namespace Imy\Core;
 
-use Request;
-
 class Service
 {
 
