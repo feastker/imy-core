@@ -19,7 +19,7 @@ abstract class Validator
         $this->data = $data ?: $this->request->post();
         $this->dataFiles = $files ?: $this->request->files();
 
-        $this->init();
+        $this->fields = $this->init();
     }
 
     abstract function init();
