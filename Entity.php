@@ -49,10 +49,7 @@ abstract class Entity
         if ($createIfNotExist && !$this->exist()) {
             $this->create($data ?? []);
         }
-
-        if (!empty($this->id)) {
-            $this->file = new File($this->entity, $this->id);
-        }
+        
     }
 
 
