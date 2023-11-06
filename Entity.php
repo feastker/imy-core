@@ -49,7 +49,7 @@ abstract class Entity
         if ($createIfNotExist && !$this->exist()) {
             $this->create($data ?? []);
         }
-        
+
     }
 
 
@@ -90,9 +90,6 @@ abstract class Entity
         if (!empty($key)) {
             $this->info->setValues($key);
             $result = $this->info->save();
-
-            if (!$this->file)
-                $this->file = new File($this->entity, !empty($this->id) ? $this->id : $result);
 
             if (!empty($seo) && empty($seo->get('entity_id'))) {
                 $seo->set('entity_id', $this->info->id);
