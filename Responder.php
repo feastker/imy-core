@@ -80,4 +80,30 @@ class Responder
             ->addHeader('Content-Type', 'application/json')
             ->send();
     }
+
+    public function file($path,$name = '') {
+
+        if(empty($name)) {
+            $tmp = explode(DS,$path);
+            $name = array_pop($tmp);
+        }
+
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Description: File Transfer');
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="' . $name . '"');
+        header('Content-Transfer-Encoding: binary');
+        header('Connection: Keep-Alive');
+        header('Expires: 0');
+        header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+        header('Pragma: public');
+        header('Content-Length: ' . filesize($path));
+        if ($fd = fopen($path, 'rb')) {
+            while (!feof($fd)) {
+                print fread($fd, 1024);
+            }
+            fclose($fd);
+        }
+        exit;
+    }
 }
