@@ -19,7 +19,7 @@ class Request
         $this->serverArr = $_SERVER;
         $this->cookiesArr = $this->sanitizeInput($_COOKIE);
         $this->filesArr = $this->mapFiles($_FILES);
-        $this->sessionArr = $_SESSION;
+        $this->sessionArr = $_SESSION ?? [];
         $this->headersArr = $this->extractHeaders($this->serverArr);
         $this->bodyArr = $this->sanitizeInput(file_get_contents('php://input'));
 
