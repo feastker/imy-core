@@ -2,7 +2,7 @@
 
 namespace Imy\Core;
 
-abstract class Service
+abstract class Process
 {
 
     protected $request;

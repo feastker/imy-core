@@ -34,6 +34,7 @@ spl_autoload_register(
         // Project loaders
         $dirs = [
             '_validator',
+            '_process',
             '_class',
             '_repository',
             '_model',
