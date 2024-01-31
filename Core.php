@@ -70,8 +70,6 @@ class Core
 
                 if (!self::$ajax) {
                     $common_controller->init();
-                } elseif (method_exists($common_controller, 'ajax')) {
-                    $common_controller->ajax();
                 }
 
                 self::$view = $common_controller->v;
