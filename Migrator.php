@@ -75,7 +75,7 @@ class Migrator
                 $file = explode('_', $file);
                 $datePart = array_shift($file);
                 $datePart = explode('-',$datePart);
-                $name = implode('_',$file);
+                $name = str_replace('.sql','',implode('_',$file));
 
                 $migration = M('imy_migration')->factory();
                 $migration->setValues(
