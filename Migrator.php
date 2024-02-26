@@ -43,14 +43,14 @@ class Migrator
         $loaded = M('imy_migration')->get()->fetchAll();
         $arrLoaded = [];
         foreach($loaded as $row) {
-            $arrLoaded[] = str_replace('-','',$row->date) . ($row->num ? '-' . ($row->num < 10 ? '0' : '') . $row->num : '') . ($row->name ? '_' . $row->name : '');
+            $arrLoaded[] = str_replace('-','',$row->date) . ($row->num ? '-' . ($row->num < 10 ? '0' : '') . $row->num : '') . ($row->name ? '_' . $row->name : '') . '.sql';
         }
 
         $files = scandir($migration_dir);
         $to_migrate = [];
         foreach ($files as $file) {
 
-            if(in_array($file,$arrLoaded))
+            if(in_array($file,$arrLoaded) || strpos($file,'.sql') === false)
                 continue;
 
             console('Will be load ' . $file);
