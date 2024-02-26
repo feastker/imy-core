@@ -50,7 +50,7 @@ class Migrator
         $to_migrate = [];
         foreach ($files as $file) {
 
-            if(in_array($file,$arrLoaded) || strpos($file,'.sql') === false && $file != 'init.sql')
+            if(in_array($file,$arrLoaded) || strpos($file,'.sql') === false || $file == 'init.sql')
                 continue;
 
             console('Will be load ' . $file);
