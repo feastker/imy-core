@@ -67,7 +67,7 @@ abstract class Validator
                         case 'range':
                             $range = explode('-', $rule[1]);
 
-                            if (!is_numeric($value) || count($range) != 2 || $value < $range[0] || $value > $range[1]) {
+                            if (!is_numeric($value) || count($range) != 2 || $value < $range[0] || $value > $range[1])
                                 $error = true;
 
                             break;
