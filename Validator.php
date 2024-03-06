@@ -118,4 +118,9 @@ abstract class Validator
 
         return implode($separator, $result);
     }
+
+    public function sanitize(): array
+    {
+        return array_intersect_key($this->data, $this->fields);
+    }
 }
