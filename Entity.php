@@ -355,8 +355,8 @@ abstract class Entity
 
         $ct = $items->copy()->count();
 
-        $orderField = $opts['columns'][$opts['order'][0]['column']]['data'] ?: $this->defaultOrder;
-        $orderDir = $opts['order'][0]['dir'] ?: $this->defaultOrderDir;
+        $orderField = @$opts['columns'][$opts['order'][0]['column']]['data'] ?: $this->defaultOrder;
+        $orderDir = @$opts['order'][0]['dir'] ?: $this->defaultOrderDir;
 
         if (!empty($opts['cond'])) {
             foreach ($opts['cond'] as $k => $v) {
