@@ -438,4 +438,38 @@ abstract class Entity
         return $max;
     }
 
+    function copy($dataChanged, $tree = []) {
+        $model = clone $this;
+        $model->getById($this->id);
+
+        $newIdModel = $model->info->copy($dataChanged);
+
+        foreach ($tree as $entity => $value) {
+            if(!is_array($value)) {
+                $results = M($entity)->get()->where($value,$this->id)->fetchAll();
+                foreach($results as $result) {
+                    $result->copy([$value => $newIdModel]);
+                }
+            }
+
+            if(is_array($value)) {
+                foreach ($value as $subEntity => $subData) {
+                    $results = M($entity)->get()->where($subEntity,$this->id)->fetchAll();
+                    foreach($results as $result) {
+                        $idNewSubResult = $result->copy([$subEntity => $newIdModel]);
+
+                        foreach ($subData as $subKey => $subVal) {
+                            $subResults = M($subKey)->get()->where($subVal,$result->id)->fetchAll();
+                            foreach ($subResults as $subResult) {
+                                $subResult->copy([$subVal => $idNewSubResult]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return $newIdModel;
+    }
+
 }
