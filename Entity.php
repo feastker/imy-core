@@ -13,6 +13,7 @@ abstract class Entity
     protected $model;
     protected $database = 'default';
     protected $defaultOrder = 'id';
+    protected $primary = 'id';
     protected $defaultOrderDir = 'ASC';
     protected $seo;
     protected $seoEntity;
@@ -75,6 +76,7 @@ abstract class Entity
     function create($data)
     {
         $this->info = M($this->entity, $this->database)->factory();
+        $this->info->setPrimary($this->primary);
         $id = $this->set($data);
 
         return $id;
@@ -440,40 +442,6 @@ abstract class Entity
     {
         $max = M($this->entity)->get()->max('position');
         return $max;
-    }
-
-    function copy($dataChanged, $tree = []) {
-        $model = clone $this;
-        $model->getById($this->id);
-
-        $newIdModel = $model->info->copy($dataChanged);
-
-        foreach ($tree as $entity => $value) {
-            if(!is_array($value)) {
-                $results = M($entity)->get()->where($value,$this->id)->fetchAll();
-                foreach($results as $result) {
-                    $result->copy([$value => $newIdModel]);
-                }
-            }
-
-            if(is_array($value)) {
-                foreach ($value as $subEntity => $subData) {
-                    $results = M($entity)->get()->where($subEntity,$this->id)->fetchAll();
-                    foreach($results as $result) {
-                        $idNewSubResult = $result->copy([$subEntity => $newIdModel]);
-
-                        foreach ($subData as $subKey => $subVal) {
-                            $subResults = M($subKey)->get()->where($subVal,$result->id)->fetchAll();
-                            foreach ($subResults as $subResult) {
-                                $subResult->copy([$subVal => $idNewSubResult]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return $newIdModel;
     }
 
 }
