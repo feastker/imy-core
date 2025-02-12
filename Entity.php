@@ -50,6 +50,10 @@ abstract class Entity
             $this->create($data ?? []);
         }
 
+        if(!empty($this->info))
+            $this->info->setPrimary($this->primary);
+
+
     }
 
 
