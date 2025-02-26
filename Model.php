@@ -46,6 +46,10 @@ class Model
             ->setResultType(DBSelect::RESULT_TYPE_CLASS, get_called_class());
     }
 
+    public function getDBSelect() {
+        return $this->get();
+    }
+
     public function copy($add)
     {
         $fields = get_object_vars($this);
