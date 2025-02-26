@@ -36,4 +36,8 @@ class Config
 
         return $data;
     }
+
+    static function getStatic($str, $name = 'default') {
+        return self::get($str, $name);
+    }
 }

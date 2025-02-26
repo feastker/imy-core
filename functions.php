@@ -8,6 +8,11 @@ function M($name, $database = null)
     return new Model($name, $database);
 }
 
+function Model($name, $database = null)
+{
+    return M($name, $database);
+}
+
 function s($obj)
 {
     echo '<pre>';
