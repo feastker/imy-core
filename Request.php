@@ -73,10 +73,10 @@ class Request
 
     public function generateCsrfToken(): string
     {
-        if (!isset($this->session['csrf_token'])) {
-            $this->session['csrf_token'] = bin2hex(random_bytes(32));
+        if (!empty($this->session('csrf_token'))) {
+            $this->sessionArr['csrf_token'] = bin2hex(random_bytes(32));
         }
-        return $this->session['csrf_token'];
+        return $this->sessionArr['csrf_token'];
     }
 
     private function validateCsrfToken()
@@ -87,16 +87,16 @@ class Request
         }
 
         // Извлечение токена из сессии и из отправленной формы
-        $sessionToken = $this->session['csrf_token'] ?? null;
-        $formToken = $this->post['csrf_token'] ?? $this->get['csrf_token'] ?? null;
+        $sessionToken = $this->session('csrf_token') ?? null;
+        $formToken = $this->post('csrf_token') ?? $this->get('csrf_token') ?? null;
 
         if (!$formToken || !$sessionToken || $formToken !== $sessionToken) {
             // Если токены не совпадают, то выбрасываем исключение или устанавливаем ошибку
-            throw new \Exception('CSRF token mismatch.');
+            throw new \Exception('CSRF token mismatch.' . $sessionToken);
         }
 
         // После проверки токена можно обновить его в сессии для следующего запроса
-        $this->session['csrf_token'] = bin2hex(random_bytes(32));
+        $this->sessionArr['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     public function get($key = '', $default = null)
