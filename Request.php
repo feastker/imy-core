@@ -136,12 +136,12 @@ class Request
 
     public function method()
     {
-        return $this->serverArr('REQUEST_METHOD');
+        return $this->server('REQUEST_METHOD');
     }
 
     public function uri()
     {
-        return $this->serverArr('REQUEST_URI');
+        return $this->server('REQUEST_URI');
     }
 
     public function isPost()
