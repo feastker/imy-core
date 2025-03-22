@@ -73,7 +73,7 @@ class Request
 
     public function generateCsrfToken(): string
     {
-        if (!empty($this->session('csrf_token'))) {
+        if (empty($this->session('csrf_token'))) {
             $this->sessionArr['csrf_token'] = bin2hex(random_bytes(32));
         }
         return $this->sessionArr['csrf_token'];
