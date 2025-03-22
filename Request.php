@@ -74,9 +74,9 @@ class Request
     public function generateCsrfToken(): string
     {
         if (empty($this->session('csrf_token'))) {
-            $this->sessionArr['csrf_token'] = bin2hex(random_bytes(32));
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
-        return $this->sessionArr['csrf_token'];
+        return $_SESSION['csrf_token'];
     }
 
     private function validateCsrfToken()
@@ -96,7 +96,7 @@ class Request
         }
 
         // После проверки токена можно обновить его в сессии для следующего запроса
-        $this->sessionArr['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
 
     public function get($key = '', $default = null)
