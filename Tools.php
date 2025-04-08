@@ -398,12 +398,17 @@ class Tools
             4 => [
                 'load' => 'imagecreatefromgif',
                 'save' => 'imagegif'
+            ],
+            18 => [
+                'load'    => 'imagecreatefromwebp',
+                'save'    => 'imagewebp',
+                'quality' => $quality
             ]
         ];
 
         $type = @exif_imagetype($src);
 
-        //ico
+        // ico
         if ($type == 17) {
             copy($src, $dest);
             return true;
@@ -414,7 +419,6 @@ class Tools
         }
 
         $image = call_user_func($image_handlers[$type]['load'], $src);
-
         if (!$image) {
             return null;
         }
@@ -435,7 +439,6 @@ class Tools
 
         if ($targetHeight == null || (!empty($height) && $ratio_width > $ratio_height && !$crop)) {
             $ratio = $width / $height;
-
             if ($width > $height) {
                 $targetHeight = floor($targetWidth / $ratio);
             } else {
@@ -444,7 +447,6 @@ class Tools
             }
         } elseif ($targetWidth == null || (!empty($width) && $ratio_width < $ratio_height && !$crop)) {
             $ratio = $height / $width;
-
             if ($width > $height) {
                 $targetWidth = floor($targetHeight / $ratio);
             } else {
@@ -455,13 +457,14 @@ class Tools
 
         $thumbnail = imagecreatetruecolor($targetWidth, $targetHeight);
 
-        if ($type == 4 || $type == 3) {
+        // Сохраняем прозрачность для PNG, GIF и WebP
+        if ($type == 4 || $type == 3 || $type == 18) {
             imagecolortransparent(
                 $thumbnail,
                 imagecolorallocate($thumbnail, 0, 0, 0)
             );
 
-            if ($type == 3) {
+            if ($type == 3 || $type == 18) {
                 imagealphablending($thumbnail, false);
                 imagesavealpha($thumbnail, true);
             }
@@ -487,6 +490,7 @@ class Tools
             $image_handlers[$type]['quality']
         );
     }
+
 
 
     static function repeatChar($char, $quantity)
