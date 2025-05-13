@@ -90,7 +90,7 @@ class Core
             if (class_exists($controller_name)) {
                 $controller = new $controller_name();
             } elseif (class_exists('Page404Controller')) {
-                $controller = \Page404Controller();
+                $controller = new \Page404Controller();
             } else {
                 Tools::s(404);
             }
