@@ -347,7 +347,7 @@ class DBSelect extends Conditions
     public function fetchAssocAll($indexed_array = false)
     {
         return $this->setResultType(self::RESULT_TYPE_ASSOC)
-            ->fetchAll($indexed_array);
+            ->fetchAll(false, $indexed_array);
     }
 
     /**
@@ -370,7 +370,7 @@ class DBSelect extends Conditions
     public function fetchColumns($column_num = 0, $indexed_array = false)
     {
         return $this->setResultType(self::RESULT_TYPE_COLUMN, $column_num)
-            ->fetchAll($indexed_array);
+            ->fetchAll(false, $indexed_array);
     }
 
     /**
@@ -393,7 +393,7 @@ class DBSelect extends Conditions
     public function fetchObjects($class_name, $index_key = false)
     {
         return $this->setResultType(self::RESULT_TYPE_CLASS, $class_name)
-            ->fetchAll($index_key);
+            ->fetchAll(false, $index_key);
     }
 
     /**
