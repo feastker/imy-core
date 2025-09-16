@@ -51,7 +51,7 @@ class DB
                 \PDO::ATTR_PERSISTENT         => $config['persistent'] ?? false
             ];
 
-            if($config['ca']) {
+            if(@$config['ca']) {
                 $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
                 $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
             }
