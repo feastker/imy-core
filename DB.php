@@ -43,14 +43,24 @@ class DB
             $dsn_params .= "{$key}={$value}";
         }
         try {
-            $this->pdo = new \PDO(
-                "mysql:{$dsn_params}", $config['user'], $config['password'], [
+            $opts = [
                 \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                 \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";',
                 \PDO::ATTR_PERSISTENT         => $config['persistent'] ?? false
-            ]
+            ];
+
+            if($config['ca']) {
+                $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
+                $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+            }
+            else {
+                $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+            }
+
+            $this->pdo = new \PDO(
+                "mysql:{$dsn_params}", $config['user'], $config['password'], $opts
             );
         } catch (\Exception $e) {
             die($e->getMessage());
