@@ -11,29 +11,6 @@ class Model
     protected $table;
     protected $database;
     protected $primary = 'id';
-    
-    // Предварительно объявленные свойства для предотвращения предупреждений о динамических свойствах
-    public $id;
-    public $is_default;
-    public $function;
-    public $privilege;
-    public $name;
-    public $surname;
-    public $middlename;
-    public $phone;
-    public $telegram;
-    public $telegram_chat_id;
-    public $email;
-    public $login;
-    public $date;
-    public $password;
-    public $auth_token;
-    public $avatar;
-    public $operating_mode;
-    public $code;
-    public $available_pages;
-    public $available_cps_opt;
-    public $aitoken;
 
     public function __construct($table = false, $database = null)
     {
@@ -261,40 +238,6 @@ class Model
     public function getTable()
     {
         return $this->table;
-    }
-
-    /**
-     * Магический метод для установки динамических свойств
-     * Перехватывает создание динамических свойств и подавляет предупреждения
-     */
-    public function __set($name, $value)
-    {
-        // Подавляем предупреждения о динамических свойствах
-        $this->$name = $value;
-    }
-
-    /**
-     * Магический метод для получения динамических свойств
-     */
-    public function __get($name)
-    {
-        return $this->$name ?? null;
-    }
-
-    /**
-     * Магический метод для проверки существования динамических свойств
-     */
-    public function __isset($name)
-    {
-        return isset($this->$name);
-    }
-
-    /**
-     * Магический метод для удаления динамических свойств
-     */
-    public function __unset($name)
-    {
-        unset($this->$name);
     }
 
 }

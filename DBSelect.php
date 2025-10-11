@@ -446,15 +446,15 @@ class DBSelect extends Conditions
 
         switch ($this->result_type) {
             case self::RESULT_TYPE_ASSOC:
-                $result = @$stmp->fetch(\PDO::FETCH_ASSOC);
+                $result = $stmp->fetch(\PDO::FETCH_ASSOC);
                 break;
 
             case self::RESULT_TYPE_CLASS:
-                $result = @$stmp->fetchObject($this->result_opt);
+                $result = $stmp->fetchObject($this->result_opt);
                 break;
 
             case self::RESULT_TYPE_COLUMN:
-                $result = @$stmp->fetchColumn($this->result_opt);
+                $result = $stmp->fetchColumn($this->result_opt);
                 break;
         }
 
