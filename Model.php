@@ -2,6 +2,7 @@
 
 namespace Imy\Core;
 
+#[\AllowDynamicProperties]
 class Model
 {
 

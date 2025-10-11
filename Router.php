@@ -92,7 +92,7 @@ class Router
             }
 
             $last = self::$uparts[count(self::$uparts) - 1];
-            if (strpos($last, '.html')) {
+            if ($last !== null && strpos($last, '.html')) {
                 $tmp = explode('?', $last);
                 $tmp = explode('#', $tmp[0]);
                 self::$alias = str_replace('.html', '', $tmp[0]);
@@ -108,7 +108,7 @@ class Router
                     break;
                 }
 
-                if (strpos(self::$uri, $k) !== false) {
+                if (self::$uri !== null && strpos(self::$uri, $k) !== false) {
                     self::$route = $v;
                     break;
                 }

@@ -168,7 +168,7 @@ abstract class Conditions extends Query
                     } else {
                         switch ($op) {
                             case 'BETWEEN':
-                                if (!strpos($value[0], '(')) {
+                                if ($value[0] !== null && !strpos($value[0], '(')) {
                                     $value = $this->connection->quote($value[0]) . ' AND ' . $this->connection->quote(
                                             $value[1]
                                         );
@@ -184,18 +184,18 @@ abstract class Conditions extends Query
 
 
                             default:
-                                if (is_array($value) || strpos($value, 'NOW()') === false) {
+                                if (is_array($value) || ($value !== null && strpos($value, 'NOW()') === false)) {
                                     if (($op == 'IN' || $op == 'NOT IN') && is_array($value)) {
                                         $v = [];
                                         foreach ($value as $val) {
-                                            if (!is_numeric($val) && strpos($val, '`') === false) {
+                                            if (!is_numeric($val) && $val !== null && strpos($val, '`') === false) {
                                                 $val = $this->connection->quote($val);
                                             }
                                             $v[] = $val;
                                         }
                                         $value = '(' . implode(', ', $v) . ')';
                                     } else {
-                                        if (strpos($value, '`') === false) {
+                                        if ($value !== null && strpos($value, '`') === false) {
                                             $value = $this->connection->quote($value);
                                         }
                                     }
@@ -204,7 +204,7 @@ abstract class Conditions extends Query
                     }
 
                     $sql .= trim(
-                        (!strpos($column, '(') && !strpos($column, '.') ? (strpos(
+                        ($column !== null && !strpos($column, '(') && !strpos($column, '.') ? (strpos(
                             $column,
                             '`'
                         ) === false ? '`' . $column . '`' : $column) : $column) . ' ' . $op . ' ' . $value
