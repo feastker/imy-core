@@ -11,7 +11,29 @@ class Model
     protected $table;
     protected $database;
     protected $primary = 'id';
-    protected $dynamic_properties = [];
+    
+    // Предварительно объявленные свойства для предотвращения предупреждений о динамических свойствах
+    public $id;
+    public $is_default;
+    public $function;
+    public $privilege;
+    public $name;
+    public $surname;
+    public $middlename;
+    public $phone;
+    public $telegram;
+    public $telegram_chat_id;
+    public $email;
+    public $login;
+    public $date;
+    public $password;
+    public $auth_token;
+    public $avatar;
+    public $operating_mode;
+    public $code;
+    public $available_pages;
+    public $available_cps_opt;
+    public $aitoken;
 
     public function __construct($table = false, $database = null)
     {
@@ -38,7 +60,6 @@ class Model
     {
         $this->info = [];
         $this->changed_fields = [];
-        $this->dynamic_properties = [];
 
         return $this;
     }
@@ -56,7 +77,7 @@ class Model
     public function copy($add)
     {
         $fields = get_object_vars($this);
-        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database','primary', 'dynamic_properties'];
+        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database','primary'];
         foreach ($to_unset as $field) {
             unset($fields[$field]);
         }
@@ -66,13 +87,6 @@ class Model
         $item = M($this->table)->factory();
         foreach ($fields as $field) {
             $item->setValue($field, $this->{$field});
-        }
-
-        // Копируем динамические свойства
-        if (!empty($this->dynamic_properties)) {
-            foreach ($this->dynamic_properties as $field => $value) {
-                $item->setValue($field, $value);
-            }
         }
 
         foreach ($add as $field => $value) {
@@ -234,7 +248,7 @@ class Model
     protected function saveSuccess()
     {
         foreach ($this->changed_fields as $key => $value) {
-            $this->__set($key, $value);
+            $this->$key = $value;
         }
         $this->changed_fields = [];
     }
@@ -249,28 +263,38 @@ class Model
         return $this->table;
     }
 
+    /**
+     * Магический метод для установки динамических свойств
+     * Перехватывает создание динамических свойств и подавляет предупреждения
+     */
     public function __set($name, $value)
     {
-        // Используем массив для хранения динамических свойств
-        if (!isset($this->dynamic_properties)) {
-            $this->dynamic_properties = [];
-        }
-        $this->dynamic_properties[$name] = $value;
+        // Подавляем предупреждения о динамических свойствах
+        $this->$name = $value;
     }
 
+    /**
+     * Магический метод для получения динамических свойств
+     */
     public function __get($name)
     {
-        return $this->dynamic_properties[$name] ?? null;
+        return $this->$name ?? null;
     }
 
+    /**
+     * Магический метод для проверки существования динамических свойств
+     */
     public function __isset($name)
     {
-        return isset($this->dynamic_properties[$name]);
+        return isset($this->$name);
     }
 
+    /**
+     * Магический метод для удаления динамических свойств
+     */
     public function __unset($name)
     {
-        unset($this->dynamic_properties[$name]);
+        unset($this->$name);
     }
 
 }
