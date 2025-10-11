@@ -33,34 +33,48 @@ class DB
             throw new Exception\Database("config for db: $connection_name not found");
         }
 
+        $driver = $config['driver'] ?? 'mysql';
+        
+
+        $exclude_params = ['driver', 'user', 'password', 'charset', 'persistent', 'ca'];
+        
         $dsn_params = '';
 
         foreach ($config as $key => $value) {
+            if (in_array($key, $exclude_params)) {
+                continue;
+            }
+            
             if ($dsn_params) {
                 $dsn_params .= ';';
             }
 
             $dsn_params .= "{$key}={$value}";
         }
+        
         try {
             $opts = [
                 \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-                \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";',
                 \PDO::ATTR_PERSISTENT         => $config['persistent'] ?? false
             ];
 
-            if(@$config['ca']) {
-                $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
-                $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
-            }
-            else {
-                $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+            // MySQL/MariaDB специфичные настройки
+            if (in_array($driver, ['mysql', 'mariadb'])) {
+                $opts[\PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";';
+                
+                if(@$config['ca']) {
+                    $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
+                    $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+                }
+                else {
+                    $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+                }
             }
 
             $this->pdo = new \PDO(
-                "mysql:{$dsn_params}", $config['user'], $config['password'], $opts
+                "{$driver}:{$dsn_params}", $config['user'], $config['password'], $opts
             );
         } catch (\Exception $e) {
             die($e->getMessage());
