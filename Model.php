@@ -12,6 +12,18 @@ class Model
     protected $database;
     protected $primary = 'id';
 
+    private $data = [];
+
+    public function __set(string $name, $value)
+    {
+        $this->data[$name] = $value;
+    }
+
+    public function __get(string $name)
+    {
+        return $this->data[$name] ?? null;
+    }
+
     public function __construct($table = false, $database = null)
     {
         $this->setTable($table);
