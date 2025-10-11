@@ -11,6 +11,7 @@ class Model
     protected $table;
     protected $database;
     protected $primary = 'id';
+    protected $dynamic_properties = [];
 
     public function __construct($table = false, $database = null)
     {
@@ -37,6 +38,7 @@ class Model
     {
         $this->info = [];
         $this->changed_fields = [];
+        $this->dynamic_properties = [];
 
         return $this;
     }
@@ -54,7 +56,7 @@ class Model
     public function copy($add)
     {
         $fields = get_object_vars($this);
-        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database','primary'];
+        $to_unset = ['id', 'info', 'changed_fields', 'table', 'database','primary', 'dynamic_properties'];
         foreach ($to_unset as $field) {
             unset($fields[$field]);
         }
@@ -64,6 +66,13 @@ class Model
         $item = M($this->table)->factory();
         foreach ($fields as $field) {
             $item->setValue($field, $this->{$field});
+        }
+
+        // Копируем динамические свойства
+        if (!empty($this->dynamic_properties)) {
+            foreach ($this->dynamic_properties as $field => $value) {
+                $item->setValue($field, $value);
+            }
         }
 
         foreach ($add as $field => $value) {
@@ -225,7 +234,7 @@ class Model
     protected function saveSuccess()
     {
         foreach ($this->changed_fields as $key => $value) {
-            $this->$key = $value;
+            $this->__set($key, $value);
         }
         $this->changed_fields = [];
     }
@@ -238,6 +247,30 @@ class Model
     public function getTable()
     {
         return $this->table;
+    }
+
+    public function __set($name, $value)
+    {
+        // Используем массив для хранения динамических свойств
+        if (!isset($this->dynamic_properties)) {
+            $this->dynamic_properties = [];
+        }
+        $this->dynamic_properties[$name] = $value;
+    }
+
+    public function __get($name)
+    {
+        return $this->dynamic_properties[$name] ?? null;
+    }
+
+    public function __isset($name)
+    {
+        return isset($this->dynamic_properties[$name]);
+    }
+
+    public function __unset($name)
+    {
+        unset($this->dynamic_properties[$name]);
     }
 
 }
