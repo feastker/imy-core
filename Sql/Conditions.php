@@ -168,7 +168,7 @@ abstract class Conditions extends Query
                     } else {
                         switch ($op) {
                             case 'BETWEEN':
-                                if ($value[0] !== null && !strpos($value[0], '(')) {
+                                if (!strpos((string)$value[0], '(')) {
                                     $value = $this->connection->quote($value[0]) . ' AND ' . $this->connection->quote(
                                             $value[1]
                                         );
@@ -184,18 +184,18 @@ abstract class Conditions extends Query
 
 
                             default:
-                                if (is_array($value) || ($value !== null && strpos($value, 'NOW()') === false)) {
+                                if (is_array($value) || (strpos((string)$value, 'NOW()') === false)) {
                                     if (($op == 'IN' || $op == 'NOT IN') && is_array($value)) {
                                         $v = [];
                                         foreach ($value as $val) {
-                                            if (!is_numeric($val) && $val !== null && strpos($val, '`') === false) {
+                                            if (!is_numeric($val) && strpos((string)$val, '`') === false) {
                                                 $val = $this->connection->quote($val);
                                             }
                                             $v[] = $val;
                                         }
                                         $value = '(' . implode(', ', $v) . ')';
                                     } else {
-                                        if ($value !== null && strpos($value, '`') === false) {
+                                        if (strpos((string)$value, '`') === false) {
                                             $value = $this->connection->quote($value);
                                         }
                                     }
@@ -204,8 +204,8 @@ abstract class Conditions extends Query
                     }
 
                     $sql .= trim(
-                        ($column !== null && !strpos($column, '(') && !strpos($column, '.') ? (strpos(
-                            $column,
+                        (!strpos((string)$column, '(') && !strpos((string)$column, '.') ? (strpos(
+                            (string)$column,
                             '`'
                         ) === false ? '`' . $column . '`' : $column) : $column) . ' ' . $op . ' ' . $value
                     );
