@@ -76,6 +76,11 @@ class DB
             $this->pdo = new \PDO(
                 "{$driver}:{$dsn_params}", $config['user'], $config['password'], $opts
             );
+            
+            // Увеличиваем счетчик соединений для дебага
+            if (class_exists('Imy\Core\Debug')) {
+                Debug::incrementConnections();
+            }
         } catch (\Exception $e) {
             die($e->getMessage());
         }
@@ -119,6 +124,8 @@ class DB
 
     public function query($query, array $params = [])
     {
+        $start_time = microtime(true);
+        
         try {
 //            if (DEBUG) {
 //                Profiler::start();
@@ -138,6 +145,12 @@ class DB
                 }
             }
 
+            // Логируем запрос для дебага
+            if (class_exists('Imy\Core\Debug')) {
+                $execution_time = microtime(true) - $start_time;
+                Debug::logQuery($query, $execution_time, $this->connection_name);
+            }
+
 //            if (DEBUG) {
 //                Profiler::log($query, 'mysql');
 //            }
@@ -150,12 +163,20 @@ class DB
 
     public function exec($query)
     {
+        $start_time = microtime(true);
+        
 //        if (DEBUG) {
 //            Profiler::start();
 //        }
 
         if (false === ($count = $this->pdo->exec($query))) {
             throw new Exception\Database("bad query: $query");
+        }
+
+        // Логируем запрос для дебага
+        if (class_exists('Imy\Core\Debug')) {
+            $execution_time = microtime(true) - $start_time;
+            Debug::logQuery($query, $execution_time, $this->connection_name);
         }
 
 //        if (DEBUG) {

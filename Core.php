@@ -29,6 +29,11 @@ class Core
             }
 
             Config::release(include $config_file);
+            
+            // Инициализируем дебаг панель если включен дебаг режим
+            if (Config::get('debug.enabled', false)) {
+                Debug::init();
+            }
 
             $cache_config = Config::get('cache');
             if (!empty($cache_config)) {
