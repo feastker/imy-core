@@ -31,7 +31,7 @@ class Core
             Config::release(include $config_file);
             
             // Инициализируем дебаг панель если включен дебаг режим
-            if (Config::get('debug.enabled', false)) {
+            if (Config::get('debug.enabled')) {
                 Debug::init();
             }
 

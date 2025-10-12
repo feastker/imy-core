@@ -11,6 +11,7 @@ class Debug
     private static $enabled = false;
     private static $headers = [];
     private static $logs = [];
+    private static $request_data = [];
     
     public static function init()
     {
@@ -18,8 +19,32 @@ class Debug
         self::$memory_start = memory_get_usage();
         self::$enabled = true;
         
+        // Собираем данные о запросе
+        self::collectRequestData();
+        
         // Регистрируем shutdown функцию для вывода панели
         register_shutdown_function([self::class, 'renderDebugPanel']);
+    }
+    
+    private static function collectRequestData()
+    {
+        self::$request_data = [
+            'GET' => $_GET,
+            'POST' => $_POST,
+            'COOKIE' => $_COOKIE,
+            'SERVER' => array_filter($_SERVER, function($key) {
+                // Фильтруем только важные SERVER переменные
+                return in_array($key, [
+                    'REQUEST_METHOD', 'REQUEST_URI', 'HTTP_HOST', 'HTTP_USER_AGENT',
+                    'HTTP_ACCEPT', 'HTTP_ACCEPT_LANGUAGE', 'HTTP_ACCEPT_ENCODING',
+                    'HTTP_CONNECTION', 'HTTP_UPGRADE_INSECURE_REQUESTS', 'HTTP_CACHE_CONTROL',
+                    'HTTP_PRAGMA', 'HTTP_DNT', 'HTTP_REFERER', 'HTTP_X_FORWARDED_FOR',
+                    'HTTP_X_FORWARDED_PROTO', 'HTTP_X_REAL_IP', 'SERVER_NAME', 'SERVER_PORT',
+                    'SERVER_PROTOCOL', 'REQUEST_TIME', 'REQUEST_TIME_FLOAT', 'REMOTE_ADDR',
+                    'REMOTE_PORT', 'HTTPS', 'SCRIPT_NAME', 'PATH_INFO', 'QUERY_STRING'
+                ]);
+            }, ARRAY_FILTER_USE_KEY)
+        ];
     }
     
     public static function logQuery($sql, $time, $connection_name = 'default')
@@ -94,6 +119,11 @@ class Debug
         return self::$logs;
     }
     
+    public static function getRequestData()
+    {
+        return self::$request_data;
+    }
+    
     public static function renderDebugPanel()
     {
         if (!self::$enabled || Core::$ajax) return;
@@ -105,13 +135,14 @@ class Debug
         $connections = self::getConnections();
         $headers = self::getHeaders();
         $logs = self::getLogs();
+        $request_data = self::getRequestData();
         
         $queries_time = array_sum(array_column($queries, 'time'));
         
-        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs);
+        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data);
     }
     
-    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs)
+    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data)
     {
         $debug_id = 'imy-debug-' . uniqid();
         
@@ -178,49 +209,80 @@ class Debug
                 </div>
             </div>
             
-            <div id="' . $debug_id . '-content" style="display: none; padding: 20px; max-height: 60vh; overflow-y: auto;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
-                    <!-- Общая информация -->
-                    <div class="debug-section">
-                        <div class="debug-header">
-                            <span class="debug-icon">📊</span>
-                            <h4>Общая информация</h4>
-                        </div>
-                        <div class="debug-content">
-                            <div class="debug-item">
-                                <span class="debug-label">⏱️ Время выполнения:</span>
-                                <span class="debug-value">' . number_format($total_time * 1000, 2) . 'ms</span>
+            <div id="' . $debug_id . '-content" style="display: none; padding: 0; max-height: 60vh; overflow: hidden;">
+                <!-- Табы -->
+                <div class="debug-tabs">
+                    <button class="debug-tab active" onclick="switchDebugTab(\'' . $debug_id . '\', \'overview\')">
+                        <span class="debug-tab-icon">📊</span>
+                        Обзор
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'queries\')">
+                        <span class="debug-tab-icon">🗄️</span>
+                        SQL (' . count($queries) . ')
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'request\')">
+                        <span class="debug-tab-icon">🌐</span>
+                        Запрос
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'logs\')">
+                        <span class="debug-tab-icon">📝</span>
+                        Логи (' . count($logs) . ')
+                    </button>
+                </div>
+                
+                <!-- Контент табов -->
+                <div class="debug-tab-content">
+                    <!-- Обзор -->
+                    <div id="' . $debug_id . '-tab-overview" class="debug-tab-panel active">
+                        <div class="debug-overview-grid">
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">⏱️</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">Время выполнения</div>
+                                    <div class="debug-overview-value">' . number_format($total_time * 1000, 2) . 'ms</div>
+                                </div>
                             </div>
-                            <div class="debug-item">
-                                <span class="debug-label">💾 Память использована:</span>
-                                <span class="debug-value">' . self::formatBytes($total_memory) . '</span>
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">💾</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">Память</div>
+                                    <div class="debug-overview-value">' . self::formatBytes($total_memory) . '</div>
+                                </div>
                             </div>
-                            <div class="debug-item">
-                                <span class="debug-label">📈 Пик памяти:</span>
-                                <span class="debug-value">' . self::formatBytes($peak_memory) . '</span>
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">📈</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">Пик памяти</div>
+                                    <div class="debug-overview-value">' . self::formatBytes($peak_memory) . '</div>
+                                </div>
                             </div>
-                            <div class="debug-item">
-                                <span class="debug-label">🗄️ SQL запросов:</span>
-                                <span class="debug-value">' . count($queries) . '</span>
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">🗄️</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">SQL запросов</div>
+                                    <div class="debug-overview-value">' . count($queries) . '</div>
+                                </div>
                             </div>
-                            <div class="debug-item">
-                                <span class="debug-label">⏰ Время SQL:</span>
-                                <span class="debug-value">' . number_format($queries_time * 1000, 2) . 'ms</span>
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">⏰</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">Время SQL</div>
+                                    <div class="debug-overview-value">' . number_format($queries_time * 1000, 2) . 'ms</div>
+                                </div>
                             </div>
-                            <div class="debug-item">
-                                <span class="debug-label">🔗 Соединений с БД:</span>
-                                <span class="debug-value">' . $connections . '</span>
+                            <div class="debug-overview-card">
+                                <div class="debug-overview-icon">🔗</div>
+                                <div class="debug-overview-content">
+                                    <div class="debug-overview-label">Соединений</div>
+                                    <div class="debug-overview-value">' . $connections . '</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- SQL запросы -->
-                    <div class="debug-section">
-                        <div class="debug-header">
-                            <span class="debug-icon">🗄️</span>
-                            <h4>SQL запросы (' . count($queries) . ')</h4>
-                        </div>
-                        <div class="debug-content debug-scrollable">';
+                    <div id="' . $debug_id . '-tab-queries" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">';
         
         if (empty($queries)) {
             $html .= '<div class="debug-empty">Нет SQL запросов</div>';
@@ -241,35 +303,88 @@ class Debug
         $html .= '</div>
                     </div>
                     
-                    <!-- Заголовки -->
-                    <div class="debug-section">
-                        <div class="debug-header">
-                            <span class="debug-icon">🌐</span>
-                            <h4>HTTP заголовки (' . count($headers) . ')</h4>
-                        </div>
-                        <div class="debug-content debug-scrollable">';
+                    <!-- Данные запроса -->
+                    <div id="' . $debug_id . '-tab-request" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">
+                            <div class="debug-request-sections">';
         
-        if (empty($headers)) {
-            $html .= '<div class="debug-empty">Нет дополнительных заголовков</div>';
-        } else {
-            foreach ($headers as $name => $value) {
-                $html .= '<div class="debug-header-item">
-                    <span class="debug-header-name">' . htmlspecialchars($name) . ':</span>
-                    <span class="debug-header-value">' . htmlspecialchars($value) . '</span>
+        // GET данные
+        if (!empty($request_data['GET'])) {
+            $html .= '<div class="debug-request-section">
+                <div class="debug-request-header">GET параметры</div>
+                <div class="debug-request-content">';
+            foreach ($request_data['GET'] as $key => $value) {
+                $html .= '<div class="debug-request-item">
+                    <span class="debug-request-key">' . htmlspecialchars($key) . '</span>
+                    <span class="debug-request-value">' . htmlspecialchars(is_array($value) ? json_encode($value) : $value) . '</span>
                 </div>';
             }
+            $html .= '</div></div>';
+        }
+        
+        // POST данные
+        if (!empty($request_data['POST'])) {
+            $html .= '<div class="debug-request-section">
+                <div class="debug-request-header">POST параметры</div>
+                <div class="debug-request-content">';
+            foreach ($request_data['POST'] as $key => $value) {
+                $html .= '<div class="debug-request-item">
+                    <span class="debug-request-key">' . htmlspecialchars($key) . '</span>
+                    <span class="debug-request-value">' . htmlspecialchars(is_array($value) ? json_encode($value) : $value) . '</span>
+                </div>';
+            }
+            $html .= '</div></div>';
+        }
+        
+        // COOKIE данные
+        if (!empty($request_data['COOKIE'])) {
+            $html .= '<div class="debug-request-section">
+                <div class="debug-request-header">COOKIE</div>
+                <div class="debug-request-content">';
+            foreach ($request_data['COOKIE'] as $key => $value) {
+                $html .= '<div class="debug-request-item">
+                    <span class="debug-request-key">' . htmlspecialchars($key) . '</span>
+                    <span class="debug-request-value">' . htmlspecialchars($value) . '</span>
+                </div>';
+            }
+            $html .= '</div></div>';
+        }
+        
+        // SERVER данные
+        if (!empty($request_data['SERVER'])) {
+            $html .= '<div class="debug-request-section">
+                <div class="debug-request-header">SERVER переменные</div>
+                <div class="debug-request-content">';
+            foreach ($request_data['SERVER'] as $key => $value) {
+                $html .= '<div class="debug-request-item">
+                    <span class="debug-request-key">' . htmlspecialchars($key) . '</span>
+                    <span class="debug-request-value">' . htmlspecialchars($value) . '</span>
+                </div>';
+            }
+            $html .= '</div></div>';
+        }
+        
+        // HTTP заголовки
+        if (!empty($headers)) {
+            $html .= '<div class="debug-request-section">
+                <div class="debug-request-header">HTTP заголовки</div>
+                <div class="debug-request-content">';
+            foreach ($headers as $name => $value) {
+                $html .= '<div class="debug-request-item">
+                    <span class="debug-request-key">' . htmlspecialchars($name) . '</span>
+                    <span class="debug-request-value">' . htmlspecialchars($value) . '</span>
+                </div>';
+            }
+            $html .= '</div></div>';
         }
         
         $html .= '</div>
+                        </div>
                     </div>
                     
                     <!-- Логи -->
-                    <div class="debug-section">
-                        <div class="debug-header">
-                            <span class="debug-icon">📝</span>
-                            <h4>Логи (' . count($logs) . ')</h4>
-                        </div>
-                        <div class="debug-content debug-scrollable">';
+                    <div id="' . $debug_id . '-tab-logs" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">';
         
         if (empty($logs)) {
             $html .= '<div class="debug-empty">Нет логов</div>';
@@ -306,6 +421,161 @@ class Debug
         </div>
         
         <style>
+        /* Табы */
+        .debug-tabs {
+            display: flex;
+            background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #aaa;
+            padding: 12px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .debug-tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        
+        .debug-tab.active {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            color: #fff;
+            border-bottom-color: #fff;
+        }
+        
+        .debug-tab-icon {
+            font-size: 14px;
+        }
+        
+        .debug-tab-content {
+            background: #2d2d2d;
+            min-height: 300px;
+            max-height: 50vh;
+            overflow: hidden;
+        }
+        
+        .debug-tab-panel {
+            display: none;
+            height: 100%;
+            overflow-y: auto;
+        }
+        
+        .debug-tab-panel.active {
+            display: block;
+        }
+        
+        .debug-tab-content-inner {
+            padding: 20px;
+        }
+        
+        /* Обзор */
+        .debug-overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .debug-overview-card {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .debug-overview-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .debug-overview-icon {
+            font-size: 24px;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .debug-overview-content {
+            flex: 1;
+        }
+        
+        .debug-overview-label {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        
+        .debug-overview-value {
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        /* Данные запроса */
+        .debug-request-sections {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .debug-request-section {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+        
+        .debug-request-header {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            padding: 12px 16px;
+            font-weight: 600;
+            color: #fff;
+            font-size: 13px;
+        }
+        
+        .debug-request-content {
+            padding: 16px;
+        }
+        
+        .debug-request-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .debug-request-item:last-child {
+            border-bottom: none;
+        }
+        
+        .debug-request-key {
+            color: #007cba;
+            font-weight: 600;
+            font-size: 11px;
+            min-width: 120px;
+        }
+        
+        .debug-request-value {
+            color: #fff;
+            font-size: 11px;
+            word-break: break-all;
+            text-align: right;
+        }
+        
         .debug-section {
             background: linear-gradient(135deg, #2d2d2d, #3d3d3d);
             border-radius: 8px;
@@ -495,6 +765,28 @@ class Debug
                 panel.style.display = "none";
                 content.style.display = "none";
                 icon.style.display = "flex";
+            }
+        }
+        
+        function switchDebugTab(debugId, tabName) {
+            // Скрываем все панели
+            const panels = document.querySelectorAll(\'#\' + debugId + \'-tab-\' + \'overview, #\' + debugId + \'-tab-queries, #\' + debugId + \'-tab-request, #\' + debugId + \'-tab-logs\');
+            panels.forEach(panel => panel.classList.remove(\'active\'));
+            
+            // Убираем активный класс со всех табов
+            const tabs = document.querySelectorAll(\'#\' + debugId + \' .debug-tab\');
+            tabs.forEach(tab => tab.classList.remove(\'active\'));
+            
+            // Показываем нужную панель
+            const targetPanel = document.getElementById(debugId + \'-tab-\' + tabName);
+            if (targetPanel) {
+                targetPanel.classList.add(\'active\');
+            }
+            
+            // Активируем нужный таб
+            const targetTab = event.target.closest(\'.debug-tab\');
+            if (targetTab) {
+                targetTab.classList.add(\'active\');
             }
         }
         
