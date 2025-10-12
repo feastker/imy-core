@@ -718,9 +718,8 @@ class Debug
         .debug-tab-panel {
             display: none;
             height: 100%;
-            overflow-y: auto;
+            overflow: hidden;
             flex: 1;
-            padding: 25px;
         }
         
         .debug-tab-panel.active {
@@ -730,6 +729,27 @@ class Debug
         .debug-tab-content-inner {
             height: 100%;
             overflow-y: auto;
+            padding: 25px;
+            padding-right: 35px;
+        }
+        
+        /* Красивый скроллбар */
+        .debug-tab-content-inner::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .debug-tab-content-inner::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .debug-tab-content-inner::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            border-radius: 4px;
+        }
+        
+        .debug-tab-content-inner::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #0056b3, #003d82);
         }
         
         /* Обзор */
@@ -1161,6 +1181,7 @@ class Debug
         function loadDebugPanelState(debugId) {
             const savedState = localStorage.getItem(\'imy-debug-panel-state\');
             const savedTab = localStorage.getItem(\'imy-debug-panel-tab\');
+            const savedHeight = localStorage.getItem(\'imy-debug-panel-height\');
             
             if (savedState === \'open\') {
                 const panel = document.getElementById(debugId);
@@ -1170,6 +1191,11 @@ class Debug
                 panel.style.display = "block";
                 content.style.display = "block";
                 icon.style.display = "none";
+                
+                // Восстанавливаем сохраненную высоту
+                if (savedHeight) {
+                    panel.style.height = savedHeight + \'px\';
+                }
                 
                 if (savedTab) {
                     switchDebugTab(debugId, savedTab, false);
@@ -1187,7 +1213,16 @@ class Debug
                 content.style.display = "block";
                 icon.style.display = "none";
                 localStorage.setItem(\'imy-debug-panel-state\', \'open\');
+                
+                // Восстанавливаем сохраненную высоту при открытии
+                const savedHeight = localStorage.getItem(\'imy-debug-panel-height\');
+                if (savedHeight) {
+                    panel.style.height = savedHeight + \'px\';
+                }
             } else {
+                // Сохраняем текущую высоту перед закрытием
+                localStorage.setItem(\'imy-debug-panel-height\', panel.offsetHeight.toString());
+                
                 panel.style.display = "none";
                 content.style.display = "none";
                 icon.style.display = "flex";
@@ -1262,12 +1297,14 @@ class Debug
             let startHeight = 0;
             
             resizeHandle.addEventListener(\'mousedown\', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 isResizing = true;
                 startY = e.clientY;
                 startHeight = panel.offsetHeight;
                 document.body.style.cursor = \'ns-resize\';
                 document.body.style.userSelect = \'none\';
-                e.preventDefault();
+                resizeHandle.style.background = \'#0056b3\';
             });
             
             document.addEventListener(\'mousemove\', function(e) {
@@ -1280,6 +1317,8 @@ class Debug
                 
                 if (newHeight >= minHeight && newHeight <= maxHeight) {
                     panel.style.height = newHeight + \'px\';
+                    // Сохраняем новую высоту в localStorage
+                    localStorage.setItem(\'imy-debug-panel-height\', newHeight.toString());
                 }
             });
             
@@ -1288,6 +1327,7 @@ class Debug
                     isResizing = false;
                     document.body.style.cursor = \'\';
                     document.body.style.userSelect = \'\';
+                    resizeHandle.style.background = \'#007cba\';
                 }
             });
         }
