@@ -12,16 +12,14 @@ class Model
     protected $database;
     protected $primary = 'id';
 
-    private $data = [];
-
-    public function __set(string $name, $value)
+    public function __set(string $name, $value): void
     {
-        $this->data[$name] = $value;
+        $this->info->{$name} = $value;
     }
 
     public function __get(string $name)
     {
-        return $this->data[$name] ?? null;
+        return $this->info->{$name} ?? null;
     }
 
     public function __construct($table = false, $database = null)
