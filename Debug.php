@@ -722,7 +722,6 @@ class Debug
             height: 100%;
             overflow: hidden;
             flex: 1;
-            padding: 25px;
         }
         
         .debug-tab-panel.active {
@@ -732,7 +731,8 @@ class Debug
         .debug-tab-content-inner {
             height: 100%;
             overflow-y: auto;
-            padding-right: 10px;
+            padding: 25px;
+            padding-right: 35px;
         }
         
         /* Обзор */
@@ -1279,16 +1279,22 @@ class Debug
             let startY = 0;
             let startHeight = 0;
             
+            // Улучшенная обработка событий
             resizeHandle.addEventListener(\'mousedown\', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 isResizing = true;
                 startY = e.clientY;
                 startHeight = panel.offsetHeight;
                 document.body.style.cursor = \'ns-resize\';
                 document.body.style.userSelect = \'none\';
-                e.preventDefault();
+                
+                // Добавляем класс для визуальной обратной связи
+                resizeHandle.style.background = \'#0056b3\';
             });
             
-            document.addEventListener(\'mousemove\', function(e) {
+            // Глобальные обработчики для mousemove и mouseup
+            const handleMouseMove = function(e) {
                 if (!isResizing) return;
                 
                 const deltaY = startY - e.clientY;
@@ -1301,14 +1307,35 @@ class Debug
                     // Сохраняем новую высоту в localStorage
                     localStorage.setItem(\'imy-debug-panel-height\', newHeight.toString());
                 }
-            });
+            };
             
-            document.addEventListener(\'mouseup\', function() {
+            const handleMouseUp = function() {
                 if (isResizing) {
                     isResizing = false;
                     document.body.style.cursor = \'\';
                     document.body.style.userSelect = \'\';
+                    resizeHandle.style.background = \'#007cba\';
+                    
+                    // Удаляем глобальные обработчики
+                    document.removeEventListener(\'mousemove\', handleMouseMove);
+                    document.removeEventListener(\'mouseup\', handleMouseUp);
                 }
+            };
+            
+            // Добавляем глобальные обработчики при начале перетаскивания
+            resizeHandle.addEventListener(\'mousedown\', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                startY = e.clientY;
+                startHeight = panel.offsetHeight;
+                document.body.style.cursor = \'ns-resize\';
+                document.body.style.userSelect = \'none\';
+                resizeHandle.style.background = \'#0056b3\';
+                
+                // Добавляем глобальные обработчики
+                document.addEventListener(\'mousemove\', handleMouseMove);
+                document.addEventListener(\'mouseup\', handleMouseUp);
             });
         }
         </script>';
