@@ -15,6 +15,7 @@ class Debug
     private static $performance_data = [];
     private static $errors = [];
     private static $includes = [];
+    private static $timing_points = [];
     
     public static function init()
     {
@@ -33,6 +34,9 @@ class Debug
         
         // Собираем данные о подключенных файлах
         self::collectIncludeData();
+        
+        // Добавляем начальную точку профилирования
+        self::addTimingPoint('init', 'Инициализация дебаг панели');
         
         // Регистрируем shutdown функцию для вывода панели
         register_shutdown_function([self::class, 'renderDebugPanel']);
@@ -210,6 +214,29 @@ class Debug
         return self::$includes;
     }
     
+    public static function addTimingPoint($name, $description = '')
+    {
+        if (!self::$enabled) return;
+        
+        $current_time = microtime(true);
+        $memory_usage = memory_get_usage();
+        
+        self::$timing_points[] = [
+            'name' => $name,
+            'description' => $description,
+            'time' => $current_time,
+            'time_from_start' => $current_time - self::$start_time,
+            'memory' => $memory_usage,
+            'memory_from_start' => $memory_usage - self::$memory_start,
+            'memory_peak' => memory_get_peak_usage()
+        ];
+    }
+    
+    public static function getTimingPoints()
+    {
+        return self::$timing_points;
+    }
+    
     public static function renderDebugPanel()
     {
         if (!self::$enabled || Core::$ajax) return;
@@ -225,13 +252,14 @@ class Debug
         $performance_data = self::getPerformanceData();
         $errors = self::getErrors();
         $includes = self::getIncludes();
+        $timing_points = self::getTimingPoints();
         
         $queries_time = array_sum(array_column($queries, 'time'));
         
-        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes);
+        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points);
     }
     
-    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes)
+    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points)
     {
         $debug_id = 'imy-debug-' . uniqid();
         
@@ -342,6 +370,10 @@ class Debug
                     <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'errors\')">
                         <span class="debug-tab-icon">⚠️</span>
                         Ошибки
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'timing\')">
+                        <span class="debug-tab-icon">⏱️</span>
+                        Профилирование
                     </button>
                 </div>
                 
@@ -661,6 +693,47 @@ class Debug
         }
         
         $html .= '</div>
+                    </div>
+                    
+                    <!-- Профилирование -->
+                    <div id="' . $debug_id . '-tab-timing" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">
+                            <div class="debug-timing-header">
+                                <span>Точки профилирования: ' . count($timing_points) . '</span>
+                                <span>Общее время: ' . number_format($total_time * 1000, 2) . 'ms</span>
+                            </div>
+                            <div class="debug-timing-list">';
+        
+        if (empty($timing_points)) {
+            $html .= '<div class="debug-empty">Нет точек профилирования</div>';
+        } else {
+            $previous_time = 0;
+            foreach ($timing_points as $index => $point) {
+                $time_diff = $index > 0 ? $point['time_from_start'] - $previous_time : $point['time_from_start'];
+                $memory_diff = $index > 0 ? $point['memory_from_start'] - $timing_points[$index-1]['memory_from_start'] : $point['memory_from_start'];
+                
+                $time_color = $time_diff > 0.1 ? '#ff6b6b' : ($time_diff > 0.05 ? '#ffa726' : '#4caf50');
+                $memory_color = $memory_diff > 1024*1024 ? '#ff6b6b' : ($memory_diff > 512*1024 ? '#ffa726' : '#4caf50');
+                
+                $html .= '<div class="debug-timing-item">
+                    <div class="debug-timing-header-item">
+                        <span class="debug-timing-name">' . htmlspecialchars($point['name']) . '</span>
+                        <span class="debug-timing-time" style="color: ' . $time_color . '">+' . number_format($time_diff * 1000, 2) . 'ms</span>
+                    </div>
+                    <div class="debug-timing-description">' . htmlspecialchars($point['description']) . '</div>
+                    <div class="debug-timing-details">
+                        <span class="debug-timing-total">Общее время: ' . number_format($point['time_from_start'] * 1000, 2) . 'ms</span>
+                        <span class="debug-timing-memory" style="color: ' . $memory_color . '">Память: ' . self::formatBytes($point['memory_from_start']) . '</span>
+                        <span class="debug-timing-peak">Пик: ' . self::formatBytes($point['memory_peak']) . '</span>
+                    </div>
+                </div>';
+                
+                $previous_time = $point['time_from_start'];
+            }
+        }
+        
+        $html .= '</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1174,6 +1247,72 @@ class Debug
             font-size: 11px;
             font-family: monospace;
         }
+        
+        /* Профилирование */
+        .debug-timing-header {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            padding: 12px 16px;
+            margin: -25px -25px 20px -25px;
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .debug-timing-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .debug-timing-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-timing-header-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .debug-timing-name {
+            color: #fff;
+            font-weight: 600;
+            font-size: 13px;
+        }
+        
+        .debug-timing-time {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .debug-timing-description {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .debug-timing-details {
+            display: flex;
+            gap: 12px;
+            font-size: 10px;
+        }
+        
+        .debug-timing-total {
+            color: #007cba;
+        }
+        
+        .debug-timing-memory {
+            font-weight: 600;
+        }
+        
+        .debug-timing-peak {
+            color: #888;
+        }
         </style>
         
         <script>
@@ -1238,7 +1377,7 @@ class Debug
         
         function switchDebugTab(debugId, tabName, saveState = true) {
             // Скрываем все панели
-            const panels = document.querySelectorAll(\'#\' + debugId + \'-tab-overview, #\' + debugId + \'-tab-queries, #\' + debugId + \'-tab-request, #\' + debugId + \'-tab-logs, #\' + debugId + \'-tab-performance, #\' + debugId + \'-tab-files, #\' + debugId + \'-tab-errors\');
+            const panels = document.querySelectorAll(\'#\' + debugId + \'-tab-overview, #\' + debugId + \'-tab-queries, #\' + debugId + \'-tab-request, #\' + debugId + \'-tab-logs, #\' + debugId + \'-tab-performance, #\' + debugId + \'-tab-files, #\' + debugId + \'-tab-errors, #\' + debugId + \'-tab-timing\');
             panels.forEach(panel => panel.classList.remove(\'active\'));
             
             // Убираем активный класс со всех табов
@@ -1263,22 +1402,8 @@ class Debug
             }
         }
         
-        // Закрытие панели по клику вне её
-        document.addEventListener(\'click\', function(event) {
-            const debugPanels = document.querySelectorAll(\'[id^="imy-debug-"]\');
-            debugPanels.forEach(panel => {
-                if (!panel.contains(event.target) && !event.target.id.includes(\'imy-debug-\')) {
-                    const panelId = panel.id;
-                    if (panelId.includes(\'-\') && !panelId.includes(\'icon\') && !panelId.includes(\'content\')) {
-                        const icon = document.getElementById(panelId + \'-icon\');
-                        if (icon) {
-                            panel.style.display = \'none\';
-                            icon.style.display = \'flex\';
-                        }
-                    }
-                }
-            });
-        });
+        // Убрана функциональность закрытия панели по клику вне её
+        // Панель теперь закрывается только через иконку или кнопку закрытия
         
         // Загружаем состояние панели при загрузке страницы
         document.addEventListener(\'DOMContentLoaded\', function() {
