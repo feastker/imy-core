@@ -1188,17 +1188,20 @@ class Debug
                 const content = document.getElementById(debugId + "-content");
                 const icon = document.getElementById(debugId + "-icon");
                 
-                panel.style.display = "block";
-                content.style.display = "block";
-                icon.style.display = "none";
-                
-                // Восстанавливаем сохраненную высоту
-                if (savedHeight) {
-                    panel.style.height = savedHeight + \'px\';
-                }
-                
-                if (savedTab) {
-                    switchDebugTab(debugId, savedTab, false);
+                // Проверяем существование элементов
+                if (panel && content && icon) {
+                    panel.style.display = "block";
+                    content.style.display = "block";
+                    icon.style.display = "none";
+                    
+                    // Восстанавливаем сохраненную высоту
+                    if (savedHeight) {
+                        panel.style.height = savedHeight + \'px\';
+                    }
+                    
+                    if (savedTab) {
+                        switchDebugTab(debugId, savedTab, false);
+                    }
                 }
             }
         }
@@ -1207,6 +1210,9 @@ class Debug
             const panel = document.getElementById(debugId);
             const content = document.getElementById(debugId + "-content");
             const icon = document.getElementById(debugId + "-icon");
+            
+            // Проверяем существование элементов
+            if (!panel || !content || !icon) return;
             
             if (panel.style.display === "none" || panel.style.display === "") {
                 panel.style.display = "block";
