@@ -12,16 +12,6 @@ class Model
     protected $database;
     protected $primary = 'id';
 
-    public function __set(string $name, $value): void
-    {
-        $this->info->{$name} = $value;
-    }
-
-    public function __get(string $name)
-    {
-        return $this->info->{$name} ?? null;
-    }
-
     public function __construct($table = false, $database = null)
     {
         $this->setTable($table);
