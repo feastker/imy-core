@@ -285,7 +285,7 @@ class Debug
                 top: 0;
                 left: 0;
                 right: 0;
-                height: 4px;
+                height: 1px;
                 background: #007cba;
                 cursor: ns-resize;
                 z-index: 10001;
@@ -349,7 +349,8 @@ class Debug
                 <div class="debug-tab-content">
                     <!-- Обзор -->
                     <div id="' . $debug_id . '-tab-overview" class="debug-tab-panel active">
-                        <div class="debug-overview-grid">
+                        <div class="debug-tab-content-inner">
+                            <div class="debug-overview-grid">
                             <div class="debug-overview-card">
                                 <div class="debug-overview-icon">⏱️</div>
                                 <div class="debug-overview-content">
@@ -392,6 +393,7 @@ class Debug
                                     <div class="debug-overview-value">' . $connections . '</div>
                                 </div>
                             </div>
+                        </div>
                         </div>
                     </div>
                     
@@ -718,7 +720,7 @@ class Debug
         .debug-tab-panel {
             display: none;
             height: 100%;
-            overflow-y: auto;
+            overflow: hidden;
             flex: 1;
             padding: 25px;
         }
@@ -730,6 +732,7 @@ class Debug
         .debug-tab-content-inner {
             height: 100%;
             overflow-y: auto;
+            padding-right: 10px;
         }
         
         /* Обзор */
@@ -1161,6 +1164,7 @@ class Debug
         function loadDebugPanelState(debugId) {
             const savedState = localStorage.getItem(\'imy-debug-panel-state\');
             const savedTab = localStorage.getItem(\'imy-debug-panel-tab\');
+            const savedHeight = localStorage.getItem(\'imy-debug-panel-height\');
             
             if (savedState === \'open\') {
                 const panel = document.getElementById(debugId);
@@ -1170,6 +1174,11 @@ class Debug
                 panel.style.display = "block";
                 content.style.display = "block";
                 icon.style.display = "none";
+                
+                // Восстанавливаем сохраненную высоту
+                if (savedHeight) {
+                    panel.style.height = savedHeight + \'px\';
+                }
                 
                 if (savedTab) {
                     switchDebugTab(debugId, savedTab, false);
@@ -1187,7 +1196,16 @@ class Debug
                 content.style.display = "block";
                 icon.style.display = "none";
                 localStorage.setItem(\'imy-debug-panel-state\', \'open\');
+                
+                // Восстанавливаем сохраненную высоту при открытии
+                const savedHeight = localStorage.getItem(\'imy-debug-panel-height\');
+                if (savedHeight) {
+                    panel.style.height = savedHeight + \'px\';
+                }
             } else {
+                // Сохраняем текущую высоту перед закрытием
+                localStorage.setItem(\'imy-debug-panel-height\', panel.offsetHeight.toString());
+                
                 panel.style.display = "none";
                 content.style.display = "none";
                 icon.style.display = "flex";
@@ -1280,6 +1298,8 @@ class Debug
                 
                 if (newHeight >= minHeight && newHeight <= maxHeight) {
                     panel.style.height = newHeight + \'px\';
+                    // Сохраняем новую высоту в localStorage
+                    localStorage.setItem(\'imy-debug-panel-height\', newHeight.toString());
                 }
             });
             
