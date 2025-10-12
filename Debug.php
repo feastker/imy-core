@@ -312,7 +312,7 @@ class Debug
                 </div>
             </div>
             
-            <div id="' . $debug_id . '-content" style="display: none; padding: 0; max-height: 60vh; overflow: hidden;">
+            <div id="' . $debug_id . '-content" style="display: none; padding: 0; height: calc(100% - 60px); overflow: hidden;">
                 <!-- Табы -->
                 <div class="debug-tabs">
                     <button class="debug-tab active" onclick="switchDebugTab(\'' . $debug_id . '\', \'overview\')">
@@ -1246,7 +1246,7 @@ class Debug
             }
             
             // Активируем нужный таб
-            const targetTab = event ? event.target.closest(\'.debug-tab\') : document.querySelector(\'#\' + debugId + \' .debug-tab[onclick*="\' + tabName + \'"]\');
+            const targetTab = document.querySelector(\'#\' + debugId + \' .debug-tab[onclick*="\' + tabName + \'"]\');
             if (targetTab) {
                 targetTab.classList.add(\'active\');
             }
