@@ -244,7 +244,7 @@ class Debug
             width: 40px;
             height: 40px;
             background: linear-gradient(135deg, #007cba, #0056b3);
-            border-radius: 8px 0 0 0;
+            border-radius: 8px 8px 0 0;
             cursor: pointer;
             z-index: 10000;
             display: flex;
@@ -256,7 +256,7 @@ class Debug
             color: white;
             font-weight: bold;
         " onmouseover="this.style.transform=\'scale(1.05)\'; this.style.boxShadow=\'0 -4px 12px rgba(0, 124, 186, 0.4)\'" onmouseout="this.style.transform=\'scale(1)\'; this.style.boxShadow=\'0 -2px 8px rgba(0, 124, 186, 0.3)\'" onclick="toggleDebugPanel(\'' . $debug_id . '\')">
-            🔧
+            💻
         </div>
         
         <!-- Основная панель -->
@@ -279,6 +279,17 @@ class Debug
             min-height: 200px;
             max-height: 80vh;
         ">
+            <!-- Ручка для изменения размера -->
+            <div class="debug-resize-handle" style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: #007cba;
+                cursor: ns-resize;
+                z-index: 10001;
+            "></div>
             <div style="
                 background: linear-gradient(135deg, #007cba, #0056b3);
                 padding: 12px 20px;
@@ -662,7 +673,7 @@ class Debug
             background: linear-gradient(135deg, #1e1e1e, #2d2d2d);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             width: fit-content;
-            margin: 0 auto;
+            margin: 0;
         }
         
         .debug-tab {
@@ -687,9 +698,9 @@ class Debug
         }
         
         .debug-tab.active {
-            background: linear-gradient(135deg, #007cba, #0056b3);
-            color: #fff;
-            border-bottom-color: #fff;
+            background: transparent;
+            color: #007cba;
+            border-bottom-color: #007cba;
         }
         
         .debug-tab-icon {
@@ -709,6 +720,7 @@ class Debug
             height: 100%;
             overflow-y: auto;
             flex: 1;
+            padding: 25px;
         }
         
         .debug-tab-panel.active {
@@ -716,7 +728,6 @@ class Debug
         }
         
         .debug-tab-content-inner {
-            padding: 20px;
             height: 100%;
             overflow-y: auto;
         }
@@ -1046,7 +1057,7 @@ class Debug
         .debug-files-header {
             background: linear-gradient(135deg, #007cba, #0056b3);
             padding: 12px 16px;
-            margin: -20px -20px 20px -20px;
+            margin: -25px -25px 20px -25px;
             color: #fff;
             font-weight: 600;
             display: flex;
@@ -1234,9 +1245,52 @@ class Debug
             debugPanels.forEach(panel => {
                 if (!panel.id.includes(\'icon\') && !panel.id.includes(\'content\')) {
                     loadDebugPanelState(panel.id);
+                    initResizeHandle(panel.id);
                 }
             });
         });
+        
+        // Инициализация ручки изменения размера
+        function initResizeHandle(debugId) {
+            const panel = document.getElementById(debugId);
+            const resizeHandle = panel.querySelector(\'.debug-resize-handle\');
+            
+            if (!resizeHandle) return;
+            
+            let isResizing = false;
+            let startY = 0;
+            let startHeight = 0;
+            
+            resizeHandle.addEventListener(\'mousedown\', function(e) {
+                isResizing = true;
+                startY = e.clientY;
+                startHeight = panel.offsetHeight;
+                document.body.style.cursor = \'ns-resize\';
+                document.body.style.userSelect = \'none\';
+                e.preventDefault();
+            });
+            
+            document.addEventListener(\'mousemove\', function(e) {
+                if (!isResizing) return;
+                
+                const deltaY = startY - e.clientY;
+                const newHeight = startHeight + deltaY;
+                const minHeight = 200;
+                const maxHeight = window.innerHeight * 0.8;
+                
+                if (newHeight >= minHeight && newHeight <= maxHeight) {
+                    panel.style.height = newHeight + \'px\';
+                }
+            });
+            
+            document.addEventListener(\'mouseup\', function() {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = \'\';
+                    document.body.style.userSelect = \'\';
+                }
+            });
+        }
         </script>';
         
         return $html;
