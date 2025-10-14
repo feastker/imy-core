@@ -166,8 +166,52 @@ class Core
             header('Location: ' . $e->getRedirectURL());
             exit;
         } catch (Exception\NotFound $e) {
-            header("HTTP/1.0 404 Not Found");
-            header('Location: /404/');
+            // Устанавливаем HTTP статус 404
+            http_response_code(404);
+            
+        
+            if (class_exists('Page404Controller')) {
+                $controller = new \Page404Controller();
+   
+              
+                if (empty(self::$view)) {
+                    self::$view = [];
+                }
+                self::$view = array_merge(self::$view, $controller->v);
+                
+               
+                if (!empty($controller->t)) {
+                    $template = $controller->t;
+                }
+                
+          
+                if (empty($template)) {
+                    $template = (defined('PROJECT_TEMPLATE_DIRECTORY') ? PROJECT_TEMPLATE_DIRECTORY . DS : '') . 'layout' . DS . 'default';
+                }
+                
+               
+                self::$view['breadcrumbs'] = Breadcrumbs::get();
+                
+          
+                echo View::render(
+                    $template,
+                    self::$view,
+                    !empty($controller->full_template_path) ? $controller->full_template_path : false
+                );
+            } else {
+       
+                echo '<!DOCTYPE html>
+                <html>
+                <head>
+                    <title>404 Not Found</title>
+                    <meta charset="utf-8">
+                </head>
+                <body>
+                    <h1>404 Not Found</h1>
+                    <p>The requested page could not be found.</p>
+                </body>
+                </html>';
+            }
             exit;
         } catch (Exception\Code $e) {
             ob_clean();
