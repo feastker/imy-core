@@ -172,27 +172,23 @@ class Core
         
             if (class_exists('Page404Controller')) {
                 $controller = new \Page404Controller();
-   
+                $controller->init();
               
                 if (empty(self::$view)) {
                     self::$view = [];
                 }
                 self::$view = array_merge(self::$view, $controller->v);
-                
-               
+
                 if (!empty($controller->t)) {
                     $template = $controller->t;
                 }
-                
           
                 if (empty($template)) {
                     $template = (defined('PROJECT_TEMPLATE_DIRECTORY') ? PROJECT_TEMPLATE_DIRECTORY . DS : '') . 'layout' . DS . 'default';
                 }
-                
-               
+
                 self::$view['breadcrumbs'] = Breadcrumbs::get();
-                
-          
+
                 echo View::render(
                     $template,
                     self::$view,
