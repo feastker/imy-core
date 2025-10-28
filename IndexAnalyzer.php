@@ -17,135 +17,154 @@ class IndexAnalyzer
     private static $slow_query_threshold = 1000; // 1 секунда в миллисекундах
     private static $max_performance_entries = 1000; // Максимум записей в памяти
     private static $max_executions_per_query = 100; // Максимум выполнений на запрос
+    private static $analyzing_queries = []; // Защита от рекурсии
     
     /**
      * Анализирует SQL запрос и определяет потенциально недостающие индексы
      */
     public static function analyzeQuery($sql, $connection_name = 'default')
     {
-        $query_type = self::getQueryType($sql);
-        
-        // Анализируем только поддерживаемые типы запросов
-        if (!in_array($query_type, ['SELECT', 'INSERT', 'UPDATE', 'DELETE'])) {
-            return;
+        // Защита от рекурсии - если запрос уже анализируется, пропускаем
+        $query_hash = md5($sql . $connection_name);
+        if (isset(self::$analyzing_queries[$query_hash])) {
+            return [];
         }
         
-        // Для SELECT запросов проверяем UNION
-        if ($query_type === 'SELECT' && self::hasUnion($sql)) {
-            $union_queries = self::splitUnionQueries($sql);
-            foreach ($union_queries as $union_query) {
-                self::analyzeQuery($union_query, $connection_name);
+        // Отмечаем запрос как анализируемый
+        self::$analyzing_queries[$query_hash] = true;
+        
+        try {
+            $query_type = self::getQueryType($sql);
+            
+            // Анализируем только поддерживаемые типы запросов
+            if (!in_array($query_type, ['SELECT', 'INSERT', 'UPDATE', 'DELETE'])) {
+                return;
             }
-            return;
-        }
         
-        $query_id = md5($sql . $connection_name);
-        
-        // Извлекаем информацию о запросе в зависимости от типа
-        if ($query_type === 'SELECT') {
-            $query_info = self::extractSelectQueryInfo($sql);
-        } else {
-            $query_info = self::extractDmlQueryInfo($sql, $query_type);
-        }
-        
-        if (empty($query_info)) {
-            return;
-        }
-        
-        // Анализируем в зависимости от типа запроса
-        if ($query_type === 'SELECT') {
-            $where_conditions = self::analyzeWhereConditions($query_info['where']);
-            $join_conditions = self::analyzeJoinConditions($query_info['joins']);
-            $order_columns = self::analyzeOrderBy($query_info['order_by']);
-            $group_columns = self::analyzeGroupBy($query_info['group_by']);
-            $having_conditions = self::analyzeHavingConditions($query_info['having']);
-            
-            // Анализируем подзапросы
-            $subquery_conditions = [];
-            foreach ($query_info['subqueries'] as $subquery) {
-                $subquery_info = self::extractSelectQueryInfo($subquery);
-                $subquery_conditions = array_merge($subquery_conditions, self::analyzeWhereConditions($subquery_info['where']));
-            }
-        } else {
-            // Для DML запросов анализируем специфичные условия
-            $where_conditions = self::analyzeWhereConditions($query_info['where']);
-            $join_conditions = self::analyzeJoinConditions($query_info['joins']);
-            $order_columns = self::analyzeOrderBy($query_info['order_by']);
-            $group_columns = [];
-            $having_conditions = [];
-            $subquery_conditions = [];
-            
-            // Дополнительный анализ для DML
-            $dml_conditions = self::analyzeDmlConditions($query_info, $query_type);
-        }
-        
-        // Выполняем EXPLAIN для SELECT запросов
-        $explain_data = null;
-        $explain_recommendations = [];
-        
-        if ($query_type === 'SELECT') {
-            $explain_data = self::executeExplain($sql, $connection_name);
-            if ($explain_data) {
-                $explain_recommendations = self::analyzeExecutionPlan($explain_data, $sql, $connection_name);
-            }
-        }
-        
-        // Генерируем рекомендации по индексам
-        if ($query_type === 'SELECT') {
-            $recommendations = self::generateIndexRecommendations(
-                $query_info['tables'],
-                $where_conditions,
-                $join_conditions,
-                $order_columns,
-                $group_columns,
-                $having_conditions,
-                $subquery_conditions
-            );
-            
-            // Добавляем рекомендации на основе EXPLAIN
-            $recommendations = array_merge($recommendations, $explain_recommendations);
-        } else {
-            // Для DML запросов используем специальную логику
-            $recommendations = self::generateDmlIndexRecommendations(
-                $query_info,
-                $where_conditions,
-                $join_conditions,
-                $order_columns,
-                $dml_conditions ?? []
-            );
-        }
-        
-        // Анализируем производительность запроса
-        $performance_data = self::analyzeQueryPerformance($sql, 0, $connection_name); // Время будет установлено в Debug::logQuery
-        
-        if (!empty($recommendations)) {
-            self::$queries[$query_id] = [
-                'sql' => $sql,
-                'connection' => $connection_name,
-                'tables' => $query_info['tables'],
-                'recommendations' => $recommendations,
-                'performance' => $performance_data,
-                'timestamp' => microtime(true)
-            ];
-            
-            // Добавляем рекомендации в общий список
-            foreach ($recommendations as $recommendation) {
-                $index_key = $recommendation['table'] . '.' . $recommendation['columns'];
-                if (!isset(self::$index_recommendations[$index_key])) {
-                    self::$index_recommendations[$index_key] = [
-                        'table' => $recommendation['table'],
-                        'columns' => $recommendation['columns'],
-                        'type' => $recommendation['type'],
-                        'priority' => $recommendation['priority'],
-                        'reason' => $recommendation['reason'],
-                        'queries' => [],
-                        'usage_count' => 0
-                    ];
+            // Для SELECT запросов проверяем UNION
+            if ($query_type === 'SELECT' && self::hasUnion($sql)) {
+                $union_queries = self::splitUnionQueries($sql);
+                foreach ($union_queries as $union_query) {
+                    self::analyzeQuery($union_query, $connection_name);
                 }
-                
-                self::$index_recommendations[$index_key]['queries'][] = $query_id;
-                self::$index_recommendations[$index_key]['usage_count']++;
+                return;
             }
+        
+            $query_id = md5($sql . $connection_name);
+            
+            // Извлекаем информацию о запросе в зависимости от типа
+            if ($query_type === 'SELECT') {
+                $query_info = self::extractSelectQueryInfo($sql);
+            } else {
+                $query_info = self::extractDmlQueryInfo($sql, $query_type);
+            }
+        
+            if (empty($query_info)) {
+                return;
+            }
+        
+            // Анализируем в зависимости от типа запроса
+            if ($query_type === 'SELECT') {
+                $where_conditions = self::analyzeWhereConditions($query_info['where']);
+                $join_conditions = self::analyzeJoinConditions($query_info['joins']);
+                $order_columns = self::analyzeOrderBy($query_info['order_by']);
+                $group_columns = self::analyzeGroupBy($query_info['group_by']);
+                $having_conditions = self::analyzeHavingConditions($query_info['having']);
+                
+                // Анализируем подзапросы
+                $subquery_conditions = [];
+                foreach ($query_info['subqueries'] as $subquery) {
+                    $subquery_info = self::extractSelectQueryInfo($subquery);
+                    $subquery_conditions = array_merge($subquery_conditions, self::analyzeWhereConditions($subquery_info['where']));
+                }
+            } else {
+                // Для DML запросов анализируем специфичные условия
+                $where_conditions = self::analyzeWhereConditions($query_info['where']);
+                $join_conditions = self::analyzeJoinConditions($query_info['joins']);
+                $order_columns = self::analyzeOrderBy($query_info['order_by']);
+                $group_columns = [];
+                $having_conditions = [];
+                $subquery_conditions = [];
+                
+                // Дополнительный анализ для DML
+                $dml_conditions = self::analyzeDmlConditions($query_info, $query_type);
+            }
+        
+            // Выполняем EXPLAIN для SELECT запросов
+            $explain_data = null;
+            $explain_recommendations = [];
+            
+            if ($query_type === 'SELECT') {
+                $explain_data = self::executeExplain($sql, $connection_name);
+                if ($explain_data) {
+                    $explain_recommendations = self::analyzeExecutionPlan($explain_data, $sql, $connection_name);
+                }
+            }
+        
+            // Генерируем рекомендации по индексам
+            if ($query_type === 'SELECT') {
+                $recommendations = self::generateIndexRecommendations(
+                    $query_info['tables'],
+                    $where_conditions,
+                    $join_conditions,
+                    $order_columns,
+                    $group_columns,
+                    $having_conditions,
+                    $subquery_conditions
+                );
+                
+                // Добавляем рекомендации на основе EXPLAIN
+                $recommendations = array_merge($recommendations, $explain_recommendations);
+            } else {
+                // Для DML запросов используем специальную логику
+                $recommendations = self::generateDmlIndexRecommendations(
+                    $query_info,
+                    $where_conditions,
+                    $join_conditions,
+                    $order_columns,
+                    $dml_conditions ?? []
+                );
+            }
+        
+            // Анализируем производительность запроса
+            $performance_data = self::analyzeQueryPerformance($sql, 0, $connection_name); // Время будет установлено в Debug::logQuery
+            
+            if (!empty($recommendations)) {
+                self::$queries[$query_id] = [
+                    'sql' => $sql,
+                    'connection' => $connection_name,
+                    'tables' => $query_info['tables'],
+                    'recommendations' => $recommendations,
+                    'performance' => $performance_data,
+                    'timestamp' => microtime(true)
+                ];
+                
+                // Добавляем рекомендации в общий список
+                foreach ($recommendations as $recommendation) {
+                    $index_key = $recommendation['table'] . '.' . $recommendation['columns'];
+                    if (!isset(self::$index_recommendations[$index_key])) {
+                        self::$index_recommendations[$index_key] = [
+                            'table' => $recommendation['table'],
+                            'columns' => $recommendation['columns'],
+                            'type' => $recommendation['type'],
+                            'priority' => $recommendation['priority'],
+                            'reason' => $recommendation['reason'],
+                            'queries' => [],
+                            'usage_count' => 0
+                        ];
+                    }
+                    
+                    self::$index_recommendations[$index_key]['queries'][] = $query_id;
+                    self::$index_recommendations[$index_key]['usage_count']++;
+                }
+            }
+        
+        } catch (Exception $e) {
+            // В случае ошибки просто логируем и продолжаем
+            error_log("IndexAnalyzer error: " . $e->getMessage());
+        } finally {
+            // Убираем запрос из списка анализируемых
+            unset(self::$analyzing_queries[$query_hash]);
         }
     }
     
