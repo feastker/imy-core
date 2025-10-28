@@ -16,6 +16,8 @@ class Debug
     private static $errors = [];
     private static $includes = [];
     private static $timing_points = [];
+    private static $profiling_enabled = true;
+    private static $exclude_analysis_queries = true;
     
     public static function init()
     {
@@ -133,12 +135,24 @@ class Debug
     {
         if (!self::$enabled) return;
         
-        self::$queries[] = [
-            'sql' => $sql,
-            'time' => $time,
-            'connection' => $connection_name,
-            'timestamp' => microtime(true)
-        ];
+        // Проверяем, нужно ли исключать запросы анализа
+        if (self::$exclude_analysis_queries && self::isAnalysisQuery($sql)) {
+            // Все равно анализируем запрос для индексов, но не показываем в SQL вкладке
+            if (class_exists('Imy\Core\IndexAnalyzer')) {
+                IndexAnalyzer::analyzeQuery($sql, $connection_name);
+            }
+            return;
+        }
+        
+        // Добавляем запрос только если профилирование включено
+        if (self::$profiling_enabled) {
+            self::$queries[] = [
+                'sql' => $sql,
+                'time' => $time,
+                'connection' => $connection_name,
+                'timestamp' => microtime(true)
+            ];
+        }
         
         // Анализируем запрос для определения недостающих индексов
         if (class_exists('Imy\Core\IndexAnalyzer')) {
@@ -398,6 +412,92 @@ class Debug
         }
     }
     
+    /**
+     * Включает или отключает профилирование запросов
+     */
+    public static function setProfilingEnabled($enabled)
+    {
+        self::$profiling_enabled = $enabled;
+    }
+    
+    /**
+     * Проверяет, включено ли профилирование запросов
+     */
+    public static function isProfilingEnabled()
+    {
+        return self::$profiling_enabled;
+    }
+    
+    /**
+     * Включает или отключает исключение запросов анализа из вкладки SQL
+     */
+    public static function setExcludeAnalysisQueries($exclude)
+    {
+        self::$exclude_analysis_queries = $exclude;
+    }
+    
+    /**
+     * Проверяет, нужно ли исключать запросы анализа из вкладки SQL
+     */
+    public static function shouldExcludeAnalysisQueries()
+    {
+        return self::$exclude_analysis_queries;
+    }
+    
+    /**
+     * Проверяет, является ли запрос служебным запросом анализа
+     */
+    private static function isAnalysisQuery($sql)
+    {
+        $sql = trim($sql);
+        
+        // Список служебных запросов, которые не нужно показывать в SQL вкладке
+        $analysis_queries = [
+            'SELECT VERSION()',
+            'SHOW TABLES',
+            'SHOW CREATE TABLE',
+            'DESCRIBE',
+            'DESC',
+            'EXPLAIN',
+            'EXPLAIN QUERY PLAN',
+            'SELECT * FROM INFORMATION_SCHEMA',
+            'SELECT * FROM information_schema',
+            'SHOW INDEX',
+            'SHOW KEYS',
+            'SHOW CREATE INDEX',
+            'SELECT COUNT(*) FROM',
+            'SELECT 1',
+            'SELECT NULL'
+        ];
+        
+        foreach ($analysis_queries as $pattern) {
+            if (stripos($sql, $pattern) === 0) {
+                return true;
+            }
+        }
+        
+        // Проверяем паттерны служебных запросов
+        $patterns = [
+            '/^SELECT\s+VERSION\(\)/i',
+            '/^SHOW\s+(TABLES|CREATE\s+TABLE|INDEX|KEYS)/i',
+            '/^DESC(RIBE)?\s+/i',
+            '/^EXPLAIN\s+/i',
+            '/^SELECT\s+.*FROM\s+INFORMATION_SCHEMA/i',
+            '/^SELECT\s+.*FROM\s+information_schema/i',
+            '/^SELECT\s+COUNT\(\*\)\s+FROM/i',
+            '/^SELECT\s+1\s*$/i',
+            '/^SELECT\s+NULL\s*$/i'
+        ];
+        
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $sql)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     public static function getIndexStats()
     {
         if (class_exists('Imy\Core\IndexAnalyzer')) {
@@ -441,10 +541,18 @@ class Debug
             return is_numeric($query['time']) ? (float)$query['time'] : 0;
         }, $queries));
         
-        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations);
+        // Добавляем информацию о настройках профилирования
+        $profiling_info = [
+            'enabled' => self::$profiling_enabled,
+            'exclude_analysis' => self::$exclude_analysis_queries,
+            'total_queries' => count($queries),
+            'analysis_queries_excluded' => self::$exclude_analysis_queries ? 'Да' : 'Нет'
+        ];
+        
+        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations, $profiling_info);
     }
     
-    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations)
+    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations, $profiling_info = [])
     {
         $debug_id = 'imy-debug-' . uniqid();
         
@@ -622,10 +730,37 @@ class Debug
                     
                     <!-- SQL запросы -->
                     <div id="' . $debug_id . '-tab-queries" class="debug-tab-panel">
-                        <div class="debug-tab-content-inner">';
+                        <div class="debug-tab-content-inner">
+                            <!-- Информация о профилировании -->
+                            <div class="debug-profiling-info" style="background: linear-gradient(135deg, #3d3d3d, #4d4d4d); border-radius: 8px; padding: 16px; margin-bottom: 20px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <h4 style="margin: 0; color: #fff; font-size: 14px;">⚙️ Настройки профилирования</h4>
+                                    <span style="color: ' . ($profiling_info['enabled'] ? '#4caf50' : '#ff6b6b') . '; font-weight: 600; font-size: 12px;">
+                                        ' . ($profiling_info['enabled'] ? 'Включено' : 'Отключено') . '
+                                    </span>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 11px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: #aaa;">Профилирование:</span>
+                                        <span style="color: ' . ($profiling_info['enabled'] ? '#4caf50' : '#ff6b6b') . '; font-weight: 600;">
+                                            ' . ($profiling_info['enabled'] ? 'Включено' : 'Отключено') . '
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: #aaa;">Исключить служебные:</span>
+                                        <span style="color: ' . ($profiling_info['exclude_analysis'] ? '#4caf50' : '#ffa726') . '; font-weight: 600;">
+                                            ' . ($profiling_info['analysis_queries_excluded'] ? 'Да' : 'Нет') . '
+                                        </span>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span style="color: #aaa;">Показано запросов:</span>
+                                        <span style="color: #fff; font-weight: 600;">' . $profiling_info['total_queries'] . '</span>
+                                    </div>
+                                </div>
+                            </div>';
         
         if (empty($queries)) {
-            $html .= '<div class="debug-empty">Нет SQL запросов</div>';
+            $html .= '<div class="debug-empty">Нет SQL запросов' . (!$profiling_info['enabled'] ? ' (профилирование отключено)' : '') . '</div>';
         } else {
             foreach ($queries as $i => $query) {
                 $query_time = is_numeric($query['time']) ? (float)$query['time'] : 0;
