@@ -15,6 +15,8 @@ class IndexAnalyzer
     private static $explain_results = [];
     private static $performance_data = [];
     private static $slow_query_threshold = 1000; // 1 секунда в миллисекундах
+    private static $max_performance_entries = 1000; // Максимум записей в памяти
+    private static $max_executions_per_query = 100; // Максимум выполнений на запрос
     
     /**
      * Анализирует SQL запрос и определяет потенциально недостающие индексы
@@ -1394,6 +1396,22 @@ class IndexAnalyzer
     }
     
     /**
+     * Устанавливает максимальное количество записей производительности в памяти
+     */
+    public static function setMaxPerformanceEntries($max_entries)
+    {
+        self::$max_performance_entries = $max_entries;
+    }
+    
+    /**
+     * Устанавливает максимальное количество выполнений на запрос
+     */
+    public static function setMaxExecutionsPerQuery($max_executions)
+    {
+        self::$max_executions_per_query = $max_executions;
+    }
+    
+    /**
      * Получает порог для детекции медленных запросов
      */
     public static function getSlowQueryThreshold()
@@ -1426,6 +1444,9 @@ class IndexAnalyzer
             'peak_memory' => memory_get_peak_usage(true)
         ];
         
+        // Проверяем лимиты памяти
+        self::checkMemoryLimits();
+        
         // Сохраняем данные производительности
         if (!isset(self::$performance_data[$normalized_id])) {
             self::$performance_data[$normalized_id] = [
@@ -1442,11 +1463,19 @@ class IndexAnalyzer
         }
         
         $group = &self::$performance_data[$normalized_id];
+        
+        // Ограничиваем количество выполнений на запрос
+        if (count($group['executions']) >= self::$max_executions_per_query) {
+            // Удаляем самое старое выполнение
+            array_shift($group['executions']);
+        }
+        
         $group['executions'][] = $performance_data;
-        $group['total_time'] += $execution_time;
+        $execution_time_float = is_numeric($execution_time) ? (float)$execution_time : 0;
+        $group['total_time'] += $execution_time_float;
         $group['avg_time'] = $group['total_time'] / count($group['executions']);
-        $group['min_time'] = min($group['min_time'], $execution_time);
-        $group['max_time'] = max($group['max_time'], $execution_time);
+        $group['min_time'] = min($group['min_time'], $execution_time_float);
+        $group['max_time'] = max($group['max_time'], $execution_time_float);
         $group['last_execution'] = $performance_data['timestamp'];
         
         if ($is_slow) {
@@ -1621,7 +1650,9 @@ class IndexAnalyzer
         
         $n = count($times);
         $x = range(1, $n);
-        $y = $times;
+        $y = array_map(function($time) {
+            return is_numeric($time) ? (float)$time : 0;
+        }, $times);
         
         // Простая линейная регрессия
         $sum_x = array_sum($x);
@@ -1693,6 +1724,96 @@ class IndexAnalyzer
         }
         
         return $recommendations;
+    }
+    
+    /**
+     * Проверяет лимиты памяти и очищает старые данные при необходимости
+     */
+    private static function checkMemoryLimits()
+    {
+        // Если превышен лимит записей, удаляем самые старые
+        if (count(self::$performance_data) > self::$max_performance_entries) {
+            // Сортируем по времени последнего выполнения
+            uasort(self::$performance_data, function($a, $b) {
+                return $a['last_execution'] <=> $b['last_execution'];
+            });
+            
+            // Удаляем 20% самых старых записей
+            $to_remove = (int)(self::$max_performance_entries * 0.2);
+            $keys = array_keys(self::$performance_data);
+            for ($i = 0; $i < $to_remove; $i++) {
+                unset(self::$performance_data[$keys[$i]]);
+            }
+        }
+        
+        // Проверяем использование памяти
+        $memory_usage = memory_get_usage(true);
+        $memory_limit = ini_get('memory_limit');
+        
+        if ($memory_limit !== '-1') {
+            $memory_limit_bytes = self::convertToBytes($memory_limit);
+            $memory_percent = ($memory_usage / $memory_limit_bytes) * 100;
+            
+            // Если используется больше 80% памяти, очищаем половину данных
+            if ($memory_percent > 80) {
+                self::cleanupOldData(0.5);
+            }
+        }
+    }
+    
+    /**
+     * Конвертирует строку лимита памяти в байты
+     */
+    private static function convertToBytes($memory_limit)
+    {
+        $memory_limit = trim($memory_limit);
+        $last = strtolower($memory_limit[strlen($memory_limit) - 1]);
+        $memory_limit = (int)$memory_limit;
+        
+        switch ($last) {
+            case 'g':
+                $memory_limit *= 1024;
+            case 'm':
+                $memory_limit *= 1024;
+            case 'k':
+                $memory_limit *= 1024;
+        }
+        
+        return $memory_limit;
+    }
+    
+    /**
+     * Очищает старые данные производительности
+     */
+    private static function cleanupOldData($ratio = 0.5)
+    {
+        $current_time = microtime(true);
+        $cutoff_time = $current_time - (3600 * 24); // 24 часа назад
+        
+        $to_remove = [];
+        foreach (self::$performance_data as $key => $group) {
+            // Удаляем группы, которые не выполнялись более 24 часов
+            if ($group['last_execution'] < $cutoff_time) {
+                $to_remove[] = $key;
+            }
+        }
+        
+        // Если нужно удалить больше данных, удаляем самые старые
+        if (count($to_remove) < count(self::$performance_data) * $ratio) {
+            uasort(self::$performance_data, function($a, $b) {
+                return $a['last_execution'] <=> $b['last_execution'];
+            });
+            
+            $keys = array_keys(self::$performance_data);
+            $to_remove_count = (int)(count(self::$performance_data) * $ratio);
+            for ($i = 0; $i < $to_remove_count; $i++) {
+                $to_remove[] = $keys[$i];
+            }
+        }
+        
+        foreach ($to_remove as $key) {
+            unset(self::$performance_data[$key]);
+        }
     }
     
     /**

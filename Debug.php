@@ -23,6 +23,13 @@ class Debug
         self::$memory_start = memory_get_usage();
         self::$enabled = true;
         
+        // Настраиваем ограничения памяти для анализа производительности
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            // Устанавливаем консервативные лимиты по умолчанию
+            IndexAnalyzer::setMaxPerformanceEntries(500); // Максимум 500 записей
+            IndexAnalyzer::setMaxExecutionsPerQuery(50);  // Максимум 50 выполнений на запрос
+        }
+        
         // Собираем данные о запросе
         self::collectRequestData();
         
@@ -361,6 +368,36 @@ class Debug
         return [];
     }
     
+    /**
+     * Устанавливает максимальное количество записей производительности в памяти
+     */
+    public static function setMaxPerformanceEntries($max_entries)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::setMaxPerformanceEntries($max_entries);
+        }
+    }
+    
+    /**
+     * Устанавливает максимальное количество выполнений на запрос
+     */
+    public static function setMaxExecutionsPerQuery($max_executions)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::setMaxExecutionsPerQuery($max_executions);
+        }
+    }
+    
+    /**
+     * Очищает данные производительности
+     */
+    public static function clearPerformanceData()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::clearPerformanceData();
+        }
+    }
+    
     public static function getIndexStats()
     {
         if (class_exists('Imy\Core\IndexAnalyzer')) {
@@ -400,7 +437,9 @@ class Debug
         $performance_trends = self::getPerformanceTrends();
         $performance_recommendations = self::getPerformanceRecommendations();
         
-        $queries_time = array_sum(array_column($queries, 'time'));
+        $queries_time = array_sum(array_map(function($query) {
+            return is_numeric($query['time']) ? (float)$query['time'] : 0;
+        }, $queries));
         
         echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations);
     }
@@ -589,11 +628,12 @@ class Debug
             $html .= '<div class="debug-empty">Нет SQL запросов</div>';
         } else {
             foreach ($queries as $i => $query) {
-                $time_color = $query['time'] > 0.1 ? '#ff6b6b' : ($query['time'] > 0.05 ? '#ffa726' : '#4caf50');
+                $query_time = is_numeric($query['time']) ? (float)$query['time'] : 0;
+                $time_color = $query_time > 0.1 ? '#ff6b6b' : ($query_time > 0.05 ? '#ffa726' : '#4caf50');
                 $html .= '<div class="debug-query">
                     <div class="debug-query-header">
                         <span class="debug-query-number">#' . ($i + 1) . '</span>
-                        <span class="debug-query-time" style="color: ' . $time_color . ';">' . number_format($query['time'] * 1000, 2) . 'ms</span>
+                        <span class="debug-query-time" style="color: ' . $time_color . ';">' . number_format((is_numeric($query['time']) ? (float)$query['time'] : 0) * 1000, 2) . 'ms</span>
                         <span class="debug-query-connection">' . $query['connection'] . '</span>
                     </div>
                     <div class="debug-query-sql">' . htmlspecialchars($query['sql']) . '</div>
