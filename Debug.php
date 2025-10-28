@@ -132,6 +132,14 @@ class Debug
             'connection' => $connection_name,
             'timestamp' => microtime(true)
         ];
+        
+        // Анализируем запрос для определения недостающих индексов
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::analyzeQuery($sql, $connection_name);
+            
+            // Обновляем данные производительности с реальным временем выполнения
+            $performance_data = IndexAnalyzer::analyzeQueryPerformance($sql, $time, $connection_name);
+        }
     }
     
     public static function incrementConnections()
@@ -199,10 +207,6 @@ class Debug
         return self::$request_data;
     }
     
-    public static function getPerformanceData()
-    {
-        return self::$performance_data;
-    }
     
     public static function getErrors()
     {
@@ -237,6 +241,142 @@ class Debug
         return self::$timing_points;
     }
     
+    public static function getIndexRecommendations()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getIndexRecommendations();
+        }
+        return [];
+    }
+    
+    public static function getAllIndexRecommendations()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getAllIndexRecommendations();
+        }
+        return [];
+    }
+    
+    public static function getExistingIndexes()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getExistingIndexes();
+        }
+        return [];
+    }
+    
+    /**
+     * Получает результаты EXPLAIN для запроса
+     */
+    public static function getExplainResults($sql, $connection_name = 'default')
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getExplainResults($sql, $connection_name);
+        }
+        return null;
+    }
+    
+    /**
+     * Включает или отключает анализ EXPLAIN
+     */
+    public static function setExplainEnabled($enabled)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::setExplainEnabled($enabled);
+        }
+    }
+    
+    /**
+     * Устанавливает порог для детекции медленных запросов
+     */
+    public static function setSlowQueryThreshold($threshold_ms)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            IndexAnalyzer::setSlowQueryThreshold($threshold_ms);
+        }
+    }
+    
+    /**
+     * Получает данные производительности
+     */
+    public static function getPerformanceData($grouped = true)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getPerformanceData($grouped);
+        }
+        return [];
+    }
+    
+    /**
+     * Получает медленные запросы
+     */
+    public static function getSlowQueries($limit = 10)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getSlowQueries($limit);
+        }
+        return [];
+    }
+    
+    /**
+     * Получает статистику производительности
+     */
+    public static function getPerformanceStats()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getPerformanceStats();
+        }
+        return [
+            'total_queries' => 0,
+            'total_time' => 0,
+            'avg_time' => 0,
+            'min_time' => 0,
+            'max_time' => 0,
+            'slow_queries' => 0,
+            'slow_query_percentage' => 0,
+            'unique_queries' => 0,
+            'slow_query_threshold' => 1000
+        ];
+    }
+    
+    /**
+     * Получает тренды производительности
+     */
+    public static function getPerformanceTrends($time_window = 3600)
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::analyzePerformanceTrends($time_window);
+        }
+        return [];
+    }
+    
+    /**
+     * Получает рекомендации по производительности
+     */
+    public static function getPerformanceRecommendations()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::generatePerformanceRecommendations();
+        }
+        return [];
+    }
+    
+    public static function getIndexStats()
+    {
+        if (class_exists('Imy\Core\IndexAnalyzer')) {
+            return IndexAnalyzer::getStats();
+        }
+        return [
+            'analyzed_queries' => 0,
+            'total_recommendations' => 0,
+            'missing_recommendations' => 0,
+            'existing_recommendations' => 0,
+            'high_priority_missing' => 0,
+            'medium_priority_missing' => 0,
+            'existing_indexes_count' => 0
+        ];
+    }
+    
     public static function renderDebugPanel()
     {
         if (!self::$enabled || Core::$ajax) return;
@@ -253,13 +393,19 @@ class Debug
         $errors = self::getErrors();
         $includes = self::getIncludes();
         $timing_points = self::getTimingPoints();
+        $index_recommendations = self::getIndexRecommendations();
+        $index_stats = self::getIndexStats();
+        $performance_stats = self::getPerformanceStats();
+        $slow_queries = self::getSlowQueries();
+        $performance_trends = self::getPerformanceTrends();
+        $performance_recommendations = self::getPerformanceRecommendations();
         
         $queries_time = array_sum(array_column($queries, 'time'));
         
-        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points);
+        echo self::renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations);
     }
     
-    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points)
+    private static function renderDebugHTML($total_time, $total_memory, $peak_memory, $queries, $queries_time, $connections, $headers, $logs, $request_data, $performance_data, $errors, $includes, $timing_points, $index_recommendations, $index_stats, $performance_stats, $slow_queries, $performance_trends, $performance_recommendations)
     {
         $debug_id = 'imy-debug-' . uniqid();
         
@@ -374,6 +520,14 @@ class Debug
                     <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'timing\')">
                         <span class="debug-tab-icon">⏱️</span>
                         Профилирование
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'indexes\')">
+                        <span class="debug-tab-icon">📊</span>
+                        Индексы (' . $index_stats['missing_recommendations'] . '/' . $index_stats['existing_indexes_count'] . ')
+                    </button>
+                    <button class="debug-tab" onclick="switchDebugTab(\'' . $debug_id . '\', \'performance\')">
+                        <span class="debug-tab-icon">⚡</span>
+                        Производительность (' . $performance_stats['slow_queries'] . ')
                     </button>
                 </div>
                 
@@ -729,6 +883,251 @@ class Debug
                 </div>';
                 
                 $previous_time = $point['time_from_start'];
+            }
+        }
+        
+        $html .= '</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Индексы -->
+                    <div id="' . $debug_id . '-tab-indexes" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">
+                            <div class="debug-indexes-header">
+                                <span>Недостающие индексы: ' . $index_stats['missing_recommendations'] . ' | Существующие: ' . $index_stats['existing_indexes_count'] . '</span>
+                                <span>Проанализировано запросов: ' . $index_stats['analyzed_queries'] . '</span>
+                            </div>
+                            <div class="debug-indexes-stats">
+                                <div class="debug-indexes-stat-item">
+                                    <span class="debug-indexes-stat-label">Недостающие (высокий):</span>
+                                    <span class="debug-indexes-stat-value high-priority">' . $index_stats['high_priority_missing'] . '</span>
+                                </div>
+                                <div class="debug-indexes-stat-item">
+                                    <span class="debug-indexes-stat-label">Недостающие (средний):</span>
+                                    <span class="debug-indexes-stat-value medium-priority">' . $index_stats['medium_priority_missing'] . '</span>
+                                </div>
+                                <div class="debug-indexes-stat-item">
+                                    <span class="debug-indexes-stat-label">Существующие:</span>
+                                    <span class="debug-indexes-stat-value existing">' . $index_stats['existing_indexes_count'] . '</span>
+                                </div>
+                            </div>
+                            <div class="debug-indexes-tabs">
+                                <button class="debug-indexes-tab active" onclick="switchIndexTab(\'' . $debug_id . '\', \'missing\')">
+                                    <span class="debug-indexes-tab-icon">❌</span>
+                                    Недостающие (' . $index_stats['missing_recommendations'] . ')
+                                </button>
+                                <button class="debug-indexes-tab" onclick="switchIndexTab(\'' . $debug_id . '\', \'existing\')">
+                                    <span class="debug-indexes-tab-icon">✅</span>
+                                    Существующие (' . $index_stats['existing_indexes_count'] . ')
+                                </button>
+                                <button class="debug-indexes-tab" onclick="switchIndexTab(\'' . $debug_id . '\', \'all\')">
+                                    <span class="debug-indexes-tab-icon">📊</span>
+                                    Все (' . $index_stats['total_recommendations'] . ')
+                                </button>
+                            </div>
+                            <div class="debug-indexes-content">
+                                <div id="' . $debug_id . '-indexes-missing" class="debug-indexes-panel active">
+                                    <div class="debug-indexes-list">';
+        
+        if (empty($index_recommendations)) {
+            $html .= '<div class="debug-empty">Нет недостающих индексов</div>';
+        } else {
+            foreach ($index_recommendations as $recommendation) {
+                $priority_class = $recommendation['priority'] === 'high' ? 'high-priority' : ($recommendation['priority'] === 'medium' ? 'medium-priority' : 'low-priority');
+                $priority_icon = $recommendation['priority'] === 'high' ? '🔴' : ($recommendation['priority'] === 'medium' ? '🟡' : '🟢');
+                
+                $html .= '<div class="debug-index-item ' . $priority_class . '">
+                    <div class="debug-index-header">
+                        <span class="debug-index-priority">' . $priority_icon . '</span>
+                        <span class="debug-index-table">' . htmlspecialchars($recommendation['table']) . '</span>
+                        <span class="debug-index-type">' . ($recommendation['type'] === 'composite' ? 'Составной' : 'Одиночный') . '</span>
+                        <span class="debug-index-usage">Использований: ' . $recommendation['usage_count'] . '</span>
+                    </div>
+                    <div class="debug-index-columns">
+                        <strong>Колонки:</strong> ' . htmlspecialchars($recommendation['columns']) . '
+                    </div>
+                    <div class="debug-index-reason">
+                        <strong>Причина:</strong> ' . htmlspecialchars($recommendation['reason']) . '
+                    </div>
+                    <div class="debug-index-sql">
+                        <strong>SQL для создания:</strong><br>
+                        <code>CREATE INDEX idx_' . strtolower($recommendation['table']) . '_' . str_replace(', ', '_', strtolower($recommendation['columns'])) . ' ON ' . $recommendation['table'] . ' (' . $recommendation['columns'] . ');</code>
+                    </div>
+                </div>';
+            }
+        }
+        
+        $html .= '</div>
+                                </div>
+                                
+                                <div id="' . $debug_id . '-indexes-existing" class="debug-indexes-panel">
+                                    <div class="debug-indexes-list">';
+        
+        // Получаем существующие индексы
+        $existing_indexes = Debug::getExistingIndexes();
+        if (empty($existing_indexes)) {
+            $html .= '<div class="debug-empty">Нет информации о существующих индексах</div>';
+        } else {
+            foreach ($existing_indexes as $index) {
+                $type_icon = $index['is_primary'] ? '🔑' : ($index['is_unique'] ? '🔒' : '📊');
+                $type_text = $index['is_primary'] ? 'Первичный ключ' : ($index['is_unique'] ? 'Уникальный' : 'Обычный');
+                
+                $html .= '<div class="debug-index-item existing">
+                    <div class="debug-index-header">
+                        <span class="debug-index-priority">' . $type_icon . '</span>
+                        <span class="debug-index-table">' . htmlspecialchars($index['table']) . '</span>
+                        <span class="debug-index-type">' . $type_text . '</span>
+                        <span class="debug-index-usage">' . $index['type'] . '</span>
+                    </div>
+                    <div class="debug-index-columns">
+                        <strong>Колонки:</strong> ' . htmlspecialchars($index['columns']) . '
+                    </div>
+                    <div class="debug-index-reason">
+                        <strong>Имя индекса:</strong> ' . htmlspecialchars($index['name']) . '
+                    </div>
+                </div>';
+            }
+        }
+        
+        $html .= '</div>
+                                </div>
+                                
+                                <div id="' . $debug_id . '-indexes-all" class="debug-indexes-panel">
+                                    <div class="debug-indexes-list">';
+        
+        // Получаем все рекомендации (включая существующие)
+        $all_recommendations = Debug::getAllIndexRecommendations();
+        if (empty($all_recommendations)) {
+            $html .= '<div class="debug-empty">Нет рекомендаций по индексам</div>';
+        } else {
+            foreach ($all_recommendations as $recommendation) {
+                $priority_class = $recommendation['priority'] === 'high' ? 'high-priority' : ($recommendation['priority'] === 'medium' ? 'medium-priority' : 'low-priority');
+                $status_class = isset($recommendation['status']) && $recommendation['status'] === 'exists' ? 'existing' : 'missing';
+                $priority_icon = $recommendation['priority'] === 'high' ? '🔴' : ($recommendation['priority'] === 'medium' ? '🟡' : '🟢');
+                $status_icon = isset($recommendation['status']) && $recommendation['status'] === 'exists' ? '✅' : '❌';
+                
+                $html .= '<div class="debug-index-item ' . $priority_class . ' ' . $status_class . '">
+                    <div class="debug-index-header">
+                        <span class="debug-index-priority">' . $priority_icon . '</span>
+                        <span class="debug-index-status">' . $status_icon . '</span>
+                        <span class="debug-index-table">' . htmlspecialchars($recommendation['table']) . '</span>
+                        <span class="debug-index-type">' . ($recommendation['type'] === 'composite' ? 'Составной' : 'Одиночный') . '</span>
+                        <span class="debug-index-usage">Использований: ' . $recommendation['usage_count'] . '</span>
+                    </div>
+                    <div class="debug-index-columns">
+                        <strong>Колонки:</strong> ' . htmlspecialchars($recommendation['columns']) . '
+                    </div>
+                    <div class="debug-index-reason">
+                        <strong>Причина:</strong> ' . htmlspecialchars($recommendation['reason']) . '
+                    </div>';
+                
+                if (isset($recommendation['status']) && $recommendation['status'] === 'exists' && isset($recommendation['existing_index'])) {
+                    $html .= '<div class="debug-index-existing">
+                        <strong>Существующий индекс:</strong> ' . htmlspecialchars($recommendation['existing_index']['name']) . ' (' . $recommendation['existing_index']['type'] . ')
+                    </div>';
+                } else {
+                    $html .= '<div class="debug-index-sql">
+                        <strong>SQL для создания:</strong><br>
+                        <code>CREATE INDEX idx_' . strtolower($recommendation['table']) . '_' . str_replace(', ', '_', strtolower($recommendation['columns'])) . ' ON ' . $recommendation['table'] . ' (' . $recommendation['columns'] . ');</code>
+                    </div>';
+                }
+                
+                $html .= '</div>';
+            }
+        }
+        
+        $html .= '</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Производительность -->
+                    <div id="' . $debug_id . '-tab-performance" class="debug-tab-panel">
+                        <div class="debug-tab-content-inner">
+                            <div class="debug-performance-header">
+                                <span>Медленные запросы: ' . $performance_stats['slow_queries'] . ' | Всего запросов: ' . $performance_stats['total_queries'] . '</span>
+                                <span>Среднее время: ' . number_format($performance_stats['avg_time'], 2) . 'ms | Порог: ' . $performance_stats['slow_query_threshold'] . 'ms</span>
+                            </div>
+                            
+                            <!-- Статистика производительности -->
+                            <div class="debug-performance-stats">
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Всего запросов:</span>
+                                    <span class="debug-performance-stat-value">' . $performance_stats['total_queries'] . '</span>
+                                </div>
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Медленные запросы:</span>
+                                    <span class="debug-performance-stat-value slow-queries">' . $performance_stats['slow_queries'] . '</span>
+                                </div>
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Процент медленных:</span>
+                                    <span class="debug-performance-stat-value">' . number_format($performance_stats['slow_query_percentage'], 1) . '%</span>
+                                </div>
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Среднее время:</span>
+                                    <span class="debug-performance-stat-value">' . number_format($performance_stats['avg_time'], 2) . 'ms</span>
+                                </div>
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Максимальное время:</span>
+                                    <span class="debug-performance-stat-value">' . number_format($performance_stats['max_time'], 2) . 'ms</span>
+                                </div>
+                                <div class="debug-performance-stat-item">
+                                    <span class="debug-performance-stat-label">Минимальное время:</span>
+                                    <span class="debug-performance-stat-value">' . number_format($performance_stats['min_time'], 2) . 'ms</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Медленные запросы -->
+                            <div class="debug-slow-queries-section">
+                                <h3>🐌 Медленные запросы</h3>';
+        
+        if (empty($slow_queries)) {
+            $html .= '<div class="debug-empty">Нет медленных запросов</div>';
+        } else {
+            foreach ($slow_queries as $query) {
+                $html .= '<div class="debug-slow-query-item">
+                    <div class="debug-slow-query-header">
+                        <span class="debug-slow-query-time">' . number_format($query['avg_time'], 2) . 'ms</span>
+                        <span class="debug-slow-query-count">' . $query['slow_executions'] . '/' . $query['total_executions'] . ' медленных</span>
+                    </div>
+                    <div class="debug-slow-query-sql">' . htmlspecialchars($query['normalized_sql']) . '</div>
+                    <div class="debug-slow-query-details">
+                        <span>Макс: ' . number_format($query['max_time'], 2) . 'ms</span>
+                        <span>Всего времени: ' . number_format($query['total_time'], 2) . 'ms</span>
+                        <span>Соединение: ' . $query['connection'] . '</span>
+                    </div>
+                </div>';
+            }
+        }
+        
+        $html .= '</div>
+                            
+                            <!-- Рекомендации по производительности -->
+                            <div class="debug-performance-recommendations-section">
+                                <h3>💡 Рекомендации по производительности</h3>';
+        
+        if (empty($performance_recommendations)) {
+            $html .= '<div class="debug-empty">Нет рекомендаций по производительности</div>';
+        } else {
+            foreach ($performance_recommendations as $recommendation) {
+                $type_class = $recommendation['type'] === 'critical' ? 'critical' : ($recommendation['type'] === 'warning' ? 'warning' : 'info');
+                $type_icon = $recommendation['type'] === 'critical' ? '🔴' : ($recommendation['type'] === 'warning' ? '🟡' : 'ℹ️');
+                
+                $html .= '<div class="debug-performance-recommendation-item ' . $type_class . '">
+                    <div class="debug-performance-recommendation-header">
+                        <span class="debug-performance-recommendation-icon">' . $type_icon . '</span>
+                        <span class="debug-performance-recommendation-title">' . htmlspecialchars($recommendation['title']) . '</span>
+                    </div>
+                    <div class="debug-performance-recommendation-description">' . htmlspecialchars($recommendation['description']) . '</div>
+                    <div class="debug-performance-recommendation-suggestion">' . htmlspecialchars($recommendation['suggestion']) . '</div>';
+                
+                if (isset($recommendation['sql'])) {
+                    $html .= '<div class="debug-performance-recommendation-sql">
+                        <strong>SQL:</strong><br>
+                        <code>' . htmlspecialchars($recommendation['sql']) . '</code>
+                    </div>';
+                }
+                
+                $html .= '</div>';
             }
         }
         
@@ -1313,6 +1712,399 @@ class Debug
         .debug-timing-peak {
             color: #888;
         }
+        
+        /* Индексы */
+        .debug-indexes-header {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            padding: 12px 16px;
+            margin: -25px -25px 20px -25px;
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .debug-indexes-stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .debug-indexes-stat-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 6px;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .debug-indexes-stat-label {
+            color: #aaa;
+            font-size: 11px;
+        }
+        
+        .debug-indexes-stat-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .debug-indexes-stat-value.high-priority {
+            color: #ff6b6b;
+        }
+        
+        .debug-indexes-stat-value.medium-priority {
+            color: #ffa726;
+        }
+        
+        .debug-indexes-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .debug-index-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #007cba;
+        }
+        
+        .debug-index-item.high-priority {
+            border-left-color: #ff6b6b;
+        }
+        
+        .debug-index-item.medium-priority {
+            border-left-color: #ffa726;
+        }
+        
+        .debug-index-item.low-priority {
+            border-left-color: #4caf50;
+        }
+        
+        .debug-index-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .debug-index-priority {
+            font-size: 16px;
+        }
+        
+        .debug-index-table {
+            color: #007cba;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .debug-index-type {
+            background: rgba(0, 124, 186, 0.2);
+            color: #007cba;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        
+        .debug-index-usage {
+            color: #aaa;
+            font-size: 11px;
+            margin-left: auto;
+        }
+        
+        .debug-index-columns {
+            color: #fff;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .debug-index-reason {
+            color: #aaa;
+            font-size: 11px;
+            margin-bottom: 12px;
+        }
+        
+        .debug-index-sql {
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-index-sql code {
+            color: #4caf50;
+            font-family: \'Courier New\', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        
+        /* Табы внутри индексов */
+        .debug-indexes-tabs {
+            display: flex;
+            background: linear-gradient(135deg, #2d2d2d, #3d3d3d);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-indexes-tab {
+            background: transparent;
+            border: none;
+            color: #aaa;
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            margin: 2px;
+        }
+        
+        .debug-indexes-tab:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+        }
+        
+        .debug-indexes-tab.active {
+            background: linear-gradient(135deg, #007cba, #0056b3);
+            color: #fff;
+        }
+        
+        .debug-indexes-tab-icon {
+            font-size: 12px;
+        }
+        
+        .debug-indexes-content {
+            position: relative;
+        }
+        
+        .debug-indexes-panel {
+            display: none;
+        }
+        
+        .debug-indexes-panel.active {
+            display: block;
+        }
+        
+        /* Статус индексов */
+        .debug-indexes-stat-value.existing {
+            color: #4caf50;
+        }
+        
+        .debug-index-item.existing {
+            border-left-color: #4caf50;
+            background: linear-gradient(135deg, #2d4d2d, #3d5d3d);
+        }
+        
+        .debug-index-status {
+            font-size: 14px;
+        }
+        
+        .debug-index-existing {
+            background: #1e3d1e;
+            border-radius: 4px;
+            padding: 8px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            color: #4caf50;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+        
+        /* Производительность */
+        .debug-performance-header {
+            background: linear-gradient(135deg, #ff6b6b, #e53e3e);
+            padding: 12px 16px;
+            margin: -25px -25px 20px -25px;
+            color: #fff;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .debug-performance-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .debug-performance-stat-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 6px;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .debug-performance-stat-label {
+            color: #aaa;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        .debug-performance-stat-value {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .debug-performance-stat-value.slow-queries {
+            color: #ff6b6b;
+        }
+        
+        .debug-slow-queries-section {
+            margin-bottom: 25px;
+        }
+        
+        .debug-slow-queries-section h3 {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .debug-slow-query-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .debug-slow-query-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .debug-slow-query-time {
+            color: #ff6b6b;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .debug-slow-query-count {
+            color: #aaa;
+            font-size: 12px;
+            background: rgba(255, 107, 107, 0.2);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .debug-slow-query-sql {
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-family: \'Courier New\', monospace;
+            font-size: 11px;
+            color: #4caf50;
+            word-break: break-all;
+            line-height: 1.4;
+        }
+        
+        .debug-slow-query-details {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #aaa;
+        }
+        
+        .debug-performance-recommendations-section {
+            margin-bottom: 25px;
+        }
+        
+        .debug-performance-recommendations-section h3 {
+            color: #fff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .debug-performance-recommendation-item {
+            background: linear-gradient(135deg, #3d3d3d, #4d4d4d);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-performance-recommendation-item.critical {
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .debug-performance-recommendation-item.warning {
+            border-left: 4px solid #ffa726;
+        }
+        
+        .debug-performance-recommendation-item.info {
+            border-left: 4px solid #42a5f5;
+        }
+        
+        .debug-performance-recommendation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .debug-performance-recommendation-icon {
+            font-size: 16px;
+        }
+        
+        .debug-performance-recommendation-title {
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .debug-performance-recommendation-description {
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .debug-performance-recommendation-suggestion {
+            color: #4caf50;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .debug-performance-recommendation-sql {
+            background: #1e1e1e;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .debug-performance-recommendation-sql code {
+            color: #4caf50;
+            font-family: \'Courier New\', monospace;
+            font-size: 10px;
+            word-break: break-all;
+            line-height: 1.4;
+        }
         </style>
         
         <script>
@@ -1377,7 +2169,7 @@ class Debug
         
         function switchDebugTab(debugId, tabName, saveState = true) {
             // Скрываем все панели
-            const panels = document.querySelectorAll(\'#\' + debugId + \'-tab-overview, #\' + debugId + \'-tab-queries, #\' + debugId + \'-tab-request, #\' + debugId + \'-tab-logs, #\' + debugId + \'-tab-performance, #\' + debugId + \'-tab-files, #\' + debugId + \'-tab-errors, #\' + debugId + \'-tab-timing\');
+            const panels = document.querySelectorAll(\'#\' + debugId + \'-tab-overview, #\' + debugId + \'-tab-queries, #\' + debugId + \'-tab-request, #\' + debugId + \'-tab-logs, #\' + debugId + \'-tab-performance, #\' + debugId + \'-tab-files, #\' + debugId + \'-tab-errors, #\' + debugId + \'-tab-timing, #\' + debugId + \'-tab-indexes\');
             panels.forEach(panel => panel.classList.remove(\'active\'));
             
             // Убираем активный класс со всех табов
@@ -1399,6 +2191,29 @@ class Debug
             // Сохраняем выбранный таб
             if (saveState) {
                 localStorage.setItem(\'imy-debug-panel-tab\', tabName);
+            }
+        }
+        
+        // Функция переключения табов индексов
+        function switchIndexTab(debugId, tabName) {
+            // Скрываем все панели индексов
+            const panels = document.querySelectorAll(\'#\' + debugId + \'-indexes-missing, #\' + debugId + \'-indexes-existing, #\' + debugId + \'-indexes-all\');
+            panels.forEach(panel => panel.classList.remove(\'active\'));
+            
+            // Убираем активный класс со всех табов индексов
+            const tabs = document.querySelectorAll(\'#\' + debugId + \' .debug-indexes-tab\');
+            tabs.forEach(tab => tab.classList.remove(\'active\'));
+            
+            // Показываем нужную панель
+            const targetPanel = document.getElementById(debugId + \'-indexes-\' + tabName);
+            if (targetPanel) {
+                targetPanel.classList.add(\'active\');
+            }
+            
+            // Активируем нужный таб
+            const targetTab = document.querySelector(\'#\' + debugId + \' .debug-indexes-tab[onclick*="\' + tabName + \'"]\');
+            if (targetTab) {
+                targetTab.classList.add(\'active\');
             }
         }
         
