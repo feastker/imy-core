@@ -63,6 +63,9 @@ class DB
             // MySQL/MariaDB специфичные настройки
             if (in_array($driver, ['mysql', 'mariadb'])) {
                 $opts[\PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";';
+
+                if(!empty($config['timezone']))
+                    $opts[\PDO::MYSQL_ATTR_INIT_COMMAND] .= 'SET time_zone = \'' . $config['timezone'] . '\';';
                 
                 if(@$config['ca']) {
                     $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
