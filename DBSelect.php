@@ -596,4 +596,40 @@ class DBSelect extends Conditions
     {
         return $this->toString();
     }
+
+
+    /**
+     * Очистить список SELECT колонок
+     *
+     * @return $this
+     */
+    public function clearSelect()
+    {
+        $this->columns = [];
+        return $this;
+    }
+
+    /**
+     * Очистить список GROUP BY
+     *
+     * @return $this
+     */
+    public function clearGroup()
+    {
+        $this->groups = [];
+        return $this;
+    }
+
+    /**
+     * Очистить список ORDER BY
+     *
+     * @return $this
+     */
+    public function clearOrder()
+    {
+        $this->orders = [];
+        return $this;
+    }
+
+
 }
