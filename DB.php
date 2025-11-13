@@ -56,6 +56,7 @@ class DB
             $opts = [
                 \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
+                \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY   => true,
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_PERSISTENT         => $config['persistent'] ?? false
             ];
