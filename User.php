@@ -95,7 +95,8 @@ class User
                     );
                 }
 
-                $user = $user->fetch();
+                $user = $user->fetchAll();
+                $user = !empty($user) ? $user[0] : null;
 
                 if (!empty($check)) {
                     $check_process += 1;
