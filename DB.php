@@ -219,7 +219,8 @@ class DB
 
     public function refreshConnect()
     {
-        $this->query("SELECT 1");
+        $stmt = $this->query("SELECT 1");
+        $stmt->closeCursor();
 
         return true;
     }
