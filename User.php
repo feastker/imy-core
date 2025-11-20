@@ -178,7 +178,8 @@ class User
             $user = M(Config::get('login.table'),Config::get('login.database') ?? 'default')->get()
                 ->where(Config::get('login.fields.login'), $login)
                 ->where(Config::get('login.fields.password'), $password)
-                ->fetch();
+                ->fetchAll();
+            $user = !empty($user) ? $user[0] : null;
 
             if ($user) {
                 self::$auth = true;
