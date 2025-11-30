@@ -473,16 +473,22 @@ class DBSelect extends Conditions
         $stmp = $this->execute($die);
 
         if ($indexed_array === false) {
+            $results = null;
             switch ($this->result_type) {
                 case self::RESULT_TYPE_COLUMN:
-                    return $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
+                    $results = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
+                    break;
 
                 case self::RESULT_TYPE_CLASS:
-                    return $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                    $results = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                    break;
 
                 case self::RESULT_TYPE_ASSOC:
-                    return $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                    $results = $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                    break;
             }
+            $stmp->closeCursor();
+            return $results;
         } else {
             if ($indexed_array === true) {
                 switch ($this->result_type) {
@@ -542,6 +548,9 @@ class DBSelect extends Conditions
             }
         }
 
+        if (isset($stmp)) {
+            $stmp->closeCursor();
+        }
 
         return $results;
     }
