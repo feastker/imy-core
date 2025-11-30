@@ -504,12 +504,16 @@ class DBSelect extends Conditions
                             $results[current($result)] = $result;
                         }
 
+                        $stmp->closeCursor();
+
                         return $results;
 
                     case self::RESULT_TYPE_COLUMN:
                         while ($result = $stmp->fetch(\PDO::FETCH_COLUMN, $this->result_opt)) {
                             $results[$result] = $result;
                         }
+
+                        $stmp->closeCursor();
 
                         return $results;
                 }
@@ -521,12 +525,16 @@ class DBSelect extends Conditions
                                 $results[$result[$indexed_array]] = $result;
                             }
 
+                            $stmp->closeCursor();
+
                             return $results;
 
                         case self::RESULT_TYPE_CLASS:
                             while ($result = $stmp->fetchObject($this->result_opt)) {
                                 $results[$result->$indexed_array] = $result;
                             }
+
+                            $stmp->closeCursor();
 
                             return $results;
                     }
