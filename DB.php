@@ -56,7 +56,6 @@ class DB
             $opts = [
                 \PDO::ATTR_STRINGIFY_FETCHES  => false,
                 \PDO::ATTR_EMULATE_PREPARES   => false,
-                \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY   => true,
                 \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_PERSISTENT         => $config['persistent'] ?? false
             ];
@@ -80,8 +79,14 @@ class DB
             $this->pdo = new \PDO(
                 "{$driver}:{$dsn_params}", $config['user'], $config['password'], $opts
             );
-            
-            // Увеличиваем счетчик соединений для дебага
+
+            if (in_array($driver, ['mysql', 'mariadb'])) {
+                $currentBuffered = $this->pdo->getAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY);
+                if (!$currentBuffered) {
+                    $this->pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+                }
+            }
+
             if (class_exists('Imy\Core\Debug')) {
                 Debug::incrementConnections();
             }
