@@ -159,6 +159,49 @@ class DB
 //                Profiler::log($query, 'mysql');
 //            }
         } catch (\PDOException $e) {
+            if (strpos($e->getMessage(), 'unbuffered queries') !== false ||
+                strpos($e->getMessage(), '2014') !== false ||
+                strpos($e->getMessage(), 'Cannot execute queries') !== false) {
+
+                $errorMsg = "\n=== ERROR: Unbuffered query detected ===\n";
+                $errorMsg .= "Error: " . $e->getMessage() . "\n";
+                $errorMsg .= "Problematic query: " . substr($query, 0, 500) . "\n\n";
+
+                if (class_exists('Imy\Core\Debug')) {
+                    $allQueries = Debug::getQueries();
+                    $errorMsg .= "All queries executed before this error (" . count($allQueries) . " total):\n";
+                    $errorMsg .= str_repeat("=", 80) . "\n";
+
+                    foreach ($allQueries as $index => $q) {
+                        $errorMsg .= sprintf(
+                            "[%d] [%.3fms] [%s] %s\n",
+                            $index + 1,
+                            $q['time'] * 1000,
+                            $q['connection'] ?? 'default',
+                            substr($q['sql'], 0, 200)
+                        );
+                    }
+                    $errorMsg .= str_repeat("=", 80) . "\n";
+                }
+
+
+                $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 10);
+                $errorMsg .= "\nCall stack:\n";
+                foreach (array_slice($backtrace, 0, 8) as $i => $frame) {
+                    if (isset($frame['file']) && isset($frame['line'])) {
+                        $file = str_replace(getCWD(), '', $frame['file']);
+                        $errorMsg .= sprintf("  [%d] %s:%d %s()\n",
+                            $i,
+                            $file,
+                            $frame['line'],
+                            $frame['function'] ?? 'unknown'
+                        );
+                    }
+                }
+
+                error_log($errorMsg);
+            }
+
             throw new Exception\Database("{$e->getMessage()}<br>query:{$query}");
         }
 
