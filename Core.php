@@ -165,6 +165,10 @@ class Core
             header("HTTP/1.1 " . $e->getHTTPStatusCode() . " " . $e->getHTTPStatusText());
             header('Location: ' . $e->getRedirectURL());
             exit;
+        } catch (Exception\Database $e) {
+
+            error_log("Database Error: " . $e->getMessage());
+            throw $e;
         } catch (Exception\NotFound $e) {
             // Устанавливаем HTTP статус 404
             http_response_code(404);
