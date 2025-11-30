@@ -496,6 +496,7 @@ class DBSelect extends Conditions
                     case self::RESULT_TYPE_CLASS:
 
                         $results = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                        $stmp->closeCursor();
                         foreach ($results as &$result) {
                             if ($result && is_object($result)) {
                                 $result->setTable($this->last_table);
@@ -506,20 +507,22 @@ class DBSelect extends Conditions
                         return $results;
 
                     case self::RESULT_TYPE_ASSOC:
-                        while ($result = $stmp->fetch(\PDO::FETCH_ASSOC)) {
+
+                        $allResults = $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                        $stmp->closeCursor();
+                        foreach ($allResults as $result) {
                             $results[current($result)] = $result;
                         }
-
-                        $stmp->closeCursor();
 
                         return $results;
 
                     case self::RESULT_TYPE_COLUMN:
-                        while ($result = $stmp->fetch(\PDO::FETCH_COLUMN, $this->result_opt)) {
+
+                        $allResults = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
+                        $stmp->closeCursor();
+                        foreach ($allResults as $result) {
                             $results[$result] = $result;
                         }
-
-                        $stmp->closeCursor();
 
                         return $results;
                 }
@@ -527,20 +530,22 @@ class DBSelect extends Conditions
                 if (is_string($indexed_array)) {
                     switch ($this->result_type) {
                         case self::RESULT_TYPE_ASSOC:
-                            while ($result = $stmp->fetch(\PDO::FETCH_ASSOC)) {
+
+                            $allResults = $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                            $stmp->closeCursor();
+                            foreach ($allResults as $result) {
                                 $results[$result[$indexed_array]] = $result;
                             }
-
-                            $stmp->closeCursor();
 
                             return $results;
 
                         case self::RESULT_TYPE_CLASS:
-                            while ($result = $stmp->fetchObject($this->result_opt)) {
+              
+                            $allResults = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                            $stmp->closeCursor();
+                            foreach ($allResults as $result) {
                                 $results[$result->$indexed_array] = $result;
                             }
-
-                            $stmp->closeCursor();
 
                             return $results;
                     }
