@@ -62,11 +62,10 @@ class DB
 
             // MySQL/MariaDB специфичные настройки
             if (in_array($driver, ['mysql', 'mariadb'])) {
-                $opts[\PDO::MYSQL_ATTR_INIT_COMMAND] = 'SET NAMES "' . ($config['charset'] ?? 'utf8') . '";';
 
                 if(!empty($config['timezone']))
                     $opts[\PDO::MYSQL_ATTR_INIT_COMMAND] .= 'SET time_zone = \'' . $config['timezone'] . '\';';
-                
+
                 if(@$config['ca']) {
                     $opts[\PDO::MYSQL_ATTR_SSL_CA] = $config['ca'];
                     $opts[\PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
@@ -84,6 +83,13 @@ class DB
                 $currentBuffered = $this->pdo->getAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY);
                 if (!$currentBuffered) {
                     $this->pdo->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+                }
+
+                try {
+                    $charset = $config['charset'] ?? 'utf8';
+                    $this->pdo->exec('SET NAMES "' . $charset . '"');
+                } catch (\Exception $e) {
+                    error_log("Warning: Failed to set charset in DB connection: " . $e->getMessage());
                 }
             }
 
