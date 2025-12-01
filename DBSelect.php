@@ -470,90 +470,104 @@ class DBSelect extends Conditions
     public function fetchAll($die = false, $indexed_array = true)
     {
         $results = [];
-        $stmp = $this->execute($die);
+        $stmp = null;
 
-        if ($indexed_array === false) {
-            $results = null;
-            switch ($this->result_type) {
-                case self::RESULT_TYPE_COLUMN:
-                    $results = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
-                    break;
+        try {
+            $stmp = $this->execute($die);
 
-                case self::RESULT_TYPE_CLASS:
-                    $results = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
-                    break;
-
-                case self::RESULT_TYPE_ASSOC:
-                    $results = $stmp->fetchAll(\PDO::FETCH_ASSOC);
-                    break;
-            }
-            $stmp->closeCursor();
-            return $results;
-        } else {
-            if ($indexed_array === true) {
+            if ($indexed_array === false) {
+                $results = null;
                 switch ($this->result_type) {
-                    // Can not be fetched with boolean index type
+                    case self::RESULT_TYPE_COLUMN:
+                        $results = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
+                        break;
+
                     case self::RESULT_TYPE_CLASS:
-
                         $results = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
-                        $stmp->closeCursor();
-                        foreach ($results as &$result) {
-                            if ($result && is_object($result)) {
-                                $result->setTable($this->last_table);
-                                $result->setDatabase($this->last_database);
-                            }
-                        }
-
-                        return $results;
+                        break;
 
                     case self::RESULT_TYPE_ASSOC:
-
-                        $allResults = $stmp->fetchAll(\PDO::FETCH_ASSOC);
-                        $stmp->closeCursor();
-                        foreach ($allResults as $result) {
-                            $results[current($result)] = $result;
-                        }
-
-                        return $results;
-
-                    case self::RESULT_TYPE_COLUMN:
-
-                        $allResults = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
-                        $stmp->closeCursor();
-                        foreach ($allResults as $result) {
-                            $results[$result] = $result;
-                        }
-
-                        return $results;
+                        $results = $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                        break;
                 }
+                $stmp->closeCursor();
+                return $results;
             } else {
-                if (is_string($indexed_array)) {
+                if ($indexed_array === true) {
                     switch ($this->result_type) {
+                        // Can not be fetched with boolean index type
+                        case self::RESULT_TYPE_CLASS:
+
+                            $results = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                            $stmp->closeCursor();
+                            foreach ($results as &$result) {
+                                if ($result && is_object($result)) {
+                                    $result->setTable($this->last_table);
+                                    $result->setDatabase($this->last_database);
+                                }
+                            }
+
+                            return $results;
+
                         case self::RESULT_TYPE_ASSOC:
 
                             $allResults = $stmp->fetchAll(\PDO::FETCH_ASSOC);
                             $stmp->closeCursor();
                             foreach ($allResults as $result) {
-                                $results[$result[$indexed_array]] = $result;
+                                $results[current($result)] = $result;
                             }
 
                             return $results;
 
-                        case self::RESULT_TYPE_CLASS:
-              
-                            $allResults = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                        case self::RESULT_TYPE_COLUMN:
+
+                            $allResults = $stmp->fetchAll(\PDO::FETCH_COLUMN, $this->result_opt);
                             $stmp->closeCursor();
                             foreach ($allResults as $result) {
-                                $results[$result->$indexed_array] = $result;
+                                $results[$result] = $result;
                             }
 
                             return $results;
                     }
+                } else {
+                    if (is_string($indexed_array)) {
+                        switch ($this->result_type) {
+                            case self::RESULT_TYPE_ASSOC:
+
+                                $allResults = $stmp->fetchAll(\PDO::FETCH_ASSOC);
+                                $stmp->closeCursor();
+                                foreach ($allResults as $result) {
+                                    $results[$result[$indexed_array]] = $result;
+                                }
+
+                                return $results;
+
+                            case self::RESULT_TYPE_CLASS:
+
+                                $allResults = $stmp->fetchAll(\PDO::FETCH_CLASS, $this->result_opt);
+                                $stmp->closeCursor();
+                                foreach ($allResults as $result) {
+                                    $results[$result->$indexed_array] = $result;
+                                }
+
+                                return $results;
+                        }
+                    }
+                }
+            }
+        } finally {
+
+            if (isset($stmp) && $stmp) {
+                try {
+                    $stmp->closeCursor();
+                } catch (\Exception $e) {
+
+                    error_log("Warning: Failed to close cursor in DBSelect::fetchAll(): " . $e->getMessage());
                 }
             }
         }
 
-        if (isset($stmp)) {
+        if (isset($stmp) && $stmp) {
             $stmp->closeCursor();
         }
 
