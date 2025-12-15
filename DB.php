@@ -85,12 +85,12 @@ class DB
                     error_log("Warning: Failed to set charset in DB connection: " . $e->getMessage());
                 }
 
-                try {
-                    $timezone = $config['timezone'] ?? 'Europe/Moscow';
-                    $this->pdo->exec("SET time_zone = '" . $timezone . "'");
-                } catch (\Exception $e) {
-                    error_log("Warning: Failed to set timezone in DB connection: " . $e->getMessage());
-                }
+//                try {
+//                    $timezone = $config['timezone'] ?? 'Europe/Moscow';
+//                    $this->pdo->exec("SET time_zone = '" . $timezone . "'");
+//                } catch (\Exception $e) {
+//                    error_log("Warning: Failed to set timezone in DB connection: " . $e->getMessage());
+//                }
             }
 
             if (class_exists('Imy\Core\Debug')) {
