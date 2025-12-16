@@ -34,12 +34,14 @@ class User
         }
     }
 
-    static function login($login = false, $password = false, $hashed = false,$domain = '')
+    static function login($login = false, $password = false, $hashed = false,$domain = '',$deadline = false)
     {
         $fields = Config::get('login.fields');
         $login = !empty($login) ? $login : $_POST[$fields['login']];
         $password = !empty($password) ? $password : $_POST[@$fields['password']];
         $salt = Config::get('login.sault') ? Config::get('login.sault') : Config::get('login.salt');
+        if(empty($deadline))
+            $deadline = 60 * 60 * 24 * 30 * 30;
 
         if (!empty($login) && !empty($password)) {
             if (!Data::check($login, 'login')) {
@@ -57,14 +59,14 @@ class User
                 setcookie(
                     Router::$project . '_' . Config::get('login.fields.login'),
                     $login,
-                    time() + 60 * 60 * 24 * 30 * 30,
+                    time() + $deadline,
                     "/",
                     $domain
                 );
                 setcookie(
                     Router::$project . '_' . Config::get('login.fields.password'),
                     md5($salt . $password),
-                    time() + 60 * 60 * 24 * 30 * 30,
+                    time() + $deadline,
                     "/",
                     $domain
                 );
@@ -117,14 +119,14 @@ class User
                 setcookie(
                     str_replace('.', '_', Router::$project) . '_' . Config::get('login.fields.login'),
                     $login,
-                    time() + 60 * 60 * 24 * 30 * 30,
+                    time() + $deadline,
                     "/",
                     $domain
                 );
                 setcookie(
                     str_replace('.', '_', Router::$project) . '_' . Config::get('login.fields.password'),
                     $user->{Config::get('login.fields.password')},
-                    time() + 60 * 60 * 24 * 30 * 30,
+                    time() + $deadline,
                     "/",
                     $domain
                 );
@@ -138,12 +140,15 @@ class User
         return false;
     }
 
-    static function updatePassword($password)
+    static function updatePassword($password,$deadline = false)
     {
+        if(empty($deadline))
+            $deadline = 60 * 60 * 24 * 30 * 30;
+
         setcookie(
             str_replace('.', '_', Router::$project) . '_' . Config::get('login.fields.password'),
             $password,
-            time() + 60 * 60 * 24 * 30 * 30,
+            time() + $deadline,
             "/"
         );
 
