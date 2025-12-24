@@ -711,20 +711,21 @@ class DBSelect extends Conditions
 
     private function getCachedValue()
     {
-        $cache = new Cache();
-        $cacheKey = $this->buildCacheKey();
-        $value = $cache->get($cacheKey);
-        if ($value !== false) {
-            if (is_object($value)) {
-                $value->setTable($this->last_table);
-                $value->setDatabase($this->last_database);
+        if ($this->cache_alias) {
+            $cache = new Cache();
+            $cacheKey = $this->buildCacheKey();
+            $value = $cache->get($cacheKey);
+            if ($value !== false) {
+                if (is_object($value)) {
+                    $value->setTable($this->last_table);
+                    $value->setDatabase($this->last_database);
+                }
+                return $value;
             }
-            return $value;
         }
 
         return false;
     }
-
     private function saveCacheValue($result)
     {
         if ($this->cache_alias && $result !== false) {
