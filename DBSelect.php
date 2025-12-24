@@ -444,18 +444,10 @@ class DBSelect extends Conditions
      */
     public function fetch($die = false)
     {
-        if ($this->cache_alias) {
-            $cache = new Cache();
-            $cacheKey = $this->buildCacheKey();
-            $value = $cache->get($cacheKey);
-            if ($value !== false) {
-                if (is_object($value)) {
-                    $value->setTable($this->last_table);
-                    $value->setDatabase($this->last_database);
-                }
-                return $value;
-            }
+        if ($cached = $this->getCachedValue()) {
+            return $cached;
         }
+
         $stmp = $this->execute($die);
         $result = false;
 
@@ -479,10 +471,7 @@ class DBSelect extends Conditions
             $result->setDatabase($this->last_database);
         }
 
-        // Сохраняем результат в кэш
-        if ($this->cache_alias && $result !== false) {
-            $cache->set($this->cache_alias, $result, $this->cache_ttl ?? 3600);
-        }
+        $this->saveCacheValue($result);
 
         return $result;
     }
@@ -490,6 +479,10 @@ class DBSelect extends Conditions
 
     public function fetchAll($die = false, $indexed_array = true)
     {
+        if ($cached = $this->getCachedValue()) {
+            return $cached;
+        }
+
         $results = [];
         $stmp = null;
 
@@ -512,6 +505,7 @@ class DBSelect extends Conditions
                         break;
                 }
                 $stmp->closeCursor();
+                $this->saveCacheValue($results);
                 return $results;
             } else {
                 if ($indexed_array === true) {
@@ -528,6 +522,7 @@ class DBSelect extends Conditions
                                 }
                             }
 
+                            $this->saveCacheValue($results);
                             return $results;
 
                         case self::RESULT_TYPE_ASSOC:
@@ -538,6 +533,7 @@ class DBSelect extends Conditions
                                 $results[current($result)] = $result;
                             }
 
+                            $this->saveCacheValue($results);
                             return $results;
 
                         case self::RESULT_TYPE_COLUMN:
@@ -548,6 +544,7 @@ class DBSelect extends Conditions
                                 $results[$result] = $result;
                             }
 
+                            $this->saveCacheValue($results);
                             return $results;
                     }
                 } else {
@@ -561,6 +558,7 @@ class DBSelect extends Conditions
                                     $results[$result[$indexed_array]] = $result;
                                 }
 
+                                $this->saveCacheValue($results);
                                 return $results;
 
                             case self::RESULT_TYPE_CLASS:
@@ -571,6 +569,7 @@ class DBSelect extends Conditions
                                     $results[$result->$indexed_array] = $result;
                                 }
 
+                                $this->saveCacheValue($results);
                                 return $results;
                         }
                     }
@@ -592,6 +591,7 @@ class DBSelect extends Conditions
             $stmp->closeCursor();
         }
 
+        $this->saveCacheValue($results);
         return $results;
     }
 
@@ -707,6 +707,32 @@ class DBSelect extends Conditions
         ];
 
         return 'db:' . sha1(json_encode($param));
+    }
+
+    private function getCachedValue()
+    {
+        $cache = new Cache();
+        $cacheKey = $this->buildCacheKey();
+        $value = $cache->get($cacheKey);
+        if ($value !== false) {
+            if (is_object($value)) {
+                $value->setTable($this->last_table);
+                $value->setDatabase($this->last_database);
+            }
+            return $value;
+        }
+
+        return false;
+    }
+
+    private function saveCacheValue($result)
+    {
+        if ($this->cache_alias && $result !== false) {
+            $cache = new Cache();
+            $cacheKey = $this->buildCacheKey();
+            $cache->set($cacheKey, $result, $this->cache_ttl ?? 3600);
+        }
+
     }
 
 
