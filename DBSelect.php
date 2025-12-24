@@ -68,6 +68,9 @@ class DBSelect extends Conditions
 
     protected $last_database;
 
+    protected $cache_alias = null;
+    protected $cache_ttl = 0;
+
     public static function factory($table_name = null, $database = null)
     {
         return new self($table_name, $database);
@@ -441,6 +444,18 @@ class DBSelect extends Conditions
      */
     public function fetch($die = false)
     {
+        if ($this->cache_alias) {
+            $cache = new Cache();
+            $cacheKey = $this->buildCacheKey();
+            $value = $cache->get($cacheKey);
+            if ($value !== false) {
+                if (is_object($value)) {
+                    $value->setTable($this->last_table);
+                    $value->setDatabase($this->last_database);
+                }
+                return $value;
+            }
+        }
         $stmp = $this->execute($die);
         $result = false;
 
@@ -463,6 +478,12 @@ class DBSelect extends Conditions
             $result->setTable($this->last_table);
             $result->setDatabase($this->last_database);
         }
+
+        // Сохраняем результат в кэш
+        if ($this->cache_alias && $result !== false) {
+            $cache->set($this->cache_alias, $result, $this->cache_ttl ?? 3600);
+        }
+
         return $result;
     }
 
@@ -665,6 +686,27 @@ class DBSelect extends Conditions
     {
         $this->orders = [];
         return $this;
+    }
+
+    public function cache(string $alias, int $ttl = 3600)
+    {
+        $this->cache_alias = $alias;
+        $this->cache_ttl = $ttl;
+        return $this;
+    }
+
+    protected function buildCacheKey(): string
+    {
+        $param = [
+            'key' => $this->cache_alias,
+            'db' => $this->last_database,
+            'table' => $this->last_table,
+            'sql' => $this->toString(),
+            'type' => $this->result_type,
+            'opt' => $this->result_opt,
+        ];
+
+        return 'db:' . sha1(json_encode($param));
     }
 
 
