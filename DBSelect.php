@@ -711,7 +711,7 @@ class DBSelect extends Conditions
 
     private function getCachedValue()
     {
-        if ($this->cache_alias) {
+        if (!empty(Config::get('cache')) && $this->cache_alias) {
             $cache = new Cache();
             $cacheKey = $this->buildCacheKey();
             $value = $cache->get($cacheKey);
@@ -728,7 +728,7 @@ class DBSelect extends Conditions
     }
     private function saveCacheValue($result)
     {
-        if ($this->cache_alias && $result !== false) {
+        if (!empty(Config::get('cache')) && $this->cache_alias && $result !== false) {
             $cache = new Cache();
             $cacheKey = $this->buildCacheKey();
             $cache->set($cacheKey, $result, $this->cache_ttl ?? 3600);
