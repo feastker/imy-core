@@ -63,4 +63,14 @@ class Cache
             return self::$engine->delete($key);
         }
     }
+
+    public function invalidate($alias)
+    {
+        if (self::$connected) {
+            $versionKey = 'version:' . $alias;
+            $currentVersion = self::$engine->get($versionKey) ?: 1;
+            self::$engine->set($versionKey, (int)$currentVersion + 1, 0);
+        }
+
+    }
 }

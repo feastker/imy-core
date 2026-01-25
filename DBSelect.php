@@ -697,6 +697,10 @@ class DBSelect extends Conditions
 
     protected function buildCacheKey(): string
     {
+        $cache = new Cache();
+        $versionKey = 'version:' . $this->cache_alias;
+        $version = $cache->get($versionKey) ?: 1;
+
         $param = [
             'key' => $this->cache_alias,
             'db' => $this->last_database,
@@ -704,6 +708,7 @@ class DBSelect extends Conditions
             'sql' => $this->toString(),
             'type' => $this->result_type,
             'opt' => $this->result_opt,
+            'v' => $version
         ];
 
         return 'db:' . sha1(json_encode($param));
