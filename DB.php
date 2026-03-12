@@ -97,7 +97,7 @@ class DB
                 Debug::incrementConnections();
             }
         } catch (\Exception $e) {
-            die($e->getMessage());
+            throw new Exception\Database($e->getMessage(), (int) $e->getCode(), $e);
         }
     }
 
